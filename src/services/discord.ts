@@ -9,8 +9,8 @@ interface DiscordMessage {
 
 export async function sendToDiscord(message: DiscordMessage): Promise<boolean> {
   const description = message.content
-    ? message.content.length > 50
-      ? message.content.substring(0, 50) + "..."
+    ? message.content.length > 200
+      ? message.content.substring(0, 200) + "..."
       : message.content
     : undefined;
 

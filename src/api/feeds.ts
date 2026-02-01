@@ -150,8 +150,9 @@ router.post("/:id/test", async (req, res) => {
       webhookUrl: feed.webhookUrl,
       feedName: feed.name,
       profileImage: feed.profileImage,
-      title: `[TEST] ${latestItem.title}`,
+      title: latestItem.title,
       link: latestItem.link,
+      content: latestItem.contentSnippet,
     });
 
     if (sent) {

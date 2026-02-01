@@ -4,9 +4,16 @@ interface DiscordMessage {
   profileImage?: string | null;
   title: string;
   link: string;
+  content?: string | null;
 }
 
 export async function sendToDiscord(message: DiscordMessage): Promise<boolean> {
+  const description = message.content
+    ? message.content.length > 50
+      ? message.content.substring(0, 50) + "..."
+      : message.content
+    : undefined;
+
   const payload = {
     username: message.feedName,
     avatar_url: message.profileImage || undefined,
@@ -14,8 +21,8 @@ export async function sendToDiscord(message: DiscordMessage): Promise<boolean> {
       {
         title: message.title,
         url: message.link,
+        description,
         color: 0x5865f2,
-        timestamp: new Date().toISOString(),
       },
     ],
   };

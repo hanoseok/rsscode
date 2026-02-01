@@ -18,6 +18,7 @@ interface RSSItem {
   title?: string;
   pubDate?: string;
   isoDate?: string;
+  contentSnippet?: string;
 }
 
 export async function checkFeed(feed: Feed): Promise<number> {
@@ -53,6 +54,7 @@ export async function checkFeed(feed: Feed): Promise<number> {
         profileImage: feed.profileImage,
         title: item.title,
         link: item.link,
+        content: item.contentSnippet,
       });
 
       if (sent) {

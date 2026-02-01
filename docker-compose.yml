@@ -1,0 +1,16 @@
+services:
+  rsscode:
+    build: .
+    container_name: rsscode
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - rsscode_data:/data
+    environment:
+      - CRON_SCHEDULE=${CRON_SCHEDULE:-*/10 * * * *}
+      - DATABASE_URL=/data/rsscode.db
+      - PORT=3000
+
+volumes:
+  rsscode_data:

@@ -1,0 +1,48 @@
+import express from "express";
+import cors from "cors";
+import { initDatabase } from "./db/index.js";
+import feedsRouter from "./api/feeds.js";
+import discordRouter from "./api/discord.js";
+import settingsRouter from "./api/settings.js";
+import { startScheduler } from "./services/scheduler.js";
+import { checkAllFeeds } from "./services/rss.js";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const app = express();
+const PORT = parseInt(process.env.PORT || "3000");
+
+app.use(cors());
+app.use(express.json());
+
+app.use("/api/feeds", feedsRouter);
+app.use("/api/discord", discordRouter);
+app.use("/api/settings", settingsRouter);
+
+app.post("/api/check", async (_req, res) => {
+  try {
+    await checkAllFeeds();
+    res.json({ success: true, message: "Feed check completed" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to check feeds" });
+  }
+});
+
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+app.use(express.static(join(__dirname, "../public")));
+
+app.get("*", (_req, res) => {
+  res.sendFile(join(__dirname, "../public/index.html"));
+});
+
+initDatabase();
+startScheduler();
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
+});

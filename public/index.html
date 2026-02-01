@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RSS to Discord</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 1.75rem; margin-bottom: 2rem; color: #f8fafc; }
+    .card {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid #334155;
+    }
+    .card h2 { font-size: 1rem; margin-bottom: 1rem; color: #94a3b8; display: flex; align-items: center; gap: 0.5rem; }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .card-header h2 { margin-bottom: 0; }
+    .form-group { margin-bottom: 1rem; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    label { display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 0.5rem; }
+    input, select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+    }
+    input:focus, select:focus { outline: none; border-color: #6366f1; }
+    select { cursor: pointer; }
+    select option { background: #1e293b; }
+    .btn {
+      padding: 0.75rem 1.5rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .btn-primary { background: #6366f1; color: white; }
+    .btn-primary:hover { background: #4f46e5; }
+    .btn-secondary { background: #334155; color: #e2e8f0; }
+    .btn-secondary:hover { background: #475569; }
+    .btn-danger { background: #dc2626; color: white; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-discord { background: #5865f2; color: white; }
+    .btn-discord:hover { background: #4752c4; }
+    .btn-sm { padding: 0.5rem 1rem; font-size: 0.8rem; }
+    .actions { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
+    .feed-list { display: flex; flex-direction: column; gap: 1rem; }
+    .feed-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 1rem;
+      background: #0f172a;
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+    .feed-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #334155;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .feed-info { flex: 1; min-width: 0; }
+    .feed-name { font-weight: 600; color: #f8fafc; margin-bottom: 0.25rem; }
+    .feed-url {
+      font-size: 0.8rem;
+      color: #64748b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .feed-meta { font-size: 0.75rem; color: #475569; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem; }
+    .feed-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: flex-start; }
+    .discord-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      background: #334155;
+    }
+    .discord-status.connected { background: #065f46; color: #6ee7b7; }
+    .discord-status.disconnected { background: #7f1d1d; color: #fca5a5; }
+    .discord-status.not-configured { background: #78350f; color: #fcd34d; }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      padding: 1rem 1.5rem;
+      border-radius: 8px;
+      color: white;
+      font-size: 0.9rem;
+      animation: slideIn 0.3s ease;
+      z-index: 1000;
+    }
+    .toast.success { background: #059669; }
+    .toast.error { background: #dc2626; }
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    .loading { opacity: 0.6; pointer-events: none; }
+    .empty { text-align: center; padding: 2rem; color: #64748b; }
+    .help-text { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
+    .help-text a { color: #818cf8; }
+    .collapse-content { display: none; }
+    .collapse-content.show { display: block; }
+    .collapse-toggle { cursor: pointer; user-select: none; }
+    .collapse-toggle::after { content: ' ▼'; font-size: 0.7rem; }
+    .collapse-toggle.collapsed::after { content: ' ▶'; }
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s;
+    }
+    .modal-overlay.show { opacity: 1; visibility: visible; }
+    .modal {
+      background: #1e293b;
+      border-radius: 12px;
+      padding: 1.5rem;
+      width: 90%;
+      max-width: 500px;
+      border: 1px solid #334155;
+      transform: scale(0.9);
+      transition: transform 0.2s;
+    }
+    .modal-overlay.show .modal { transform: scale(1); }
+    .modal h3 { font-size: 1.1rem; margin-bottom: 1.5rem; color: #f8fafc; }
+    .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem; }
+    .channel-row { display: flex; gap: 0.5rem; align-items: flex-end; }
+    .channel-row .form-group { flex: 1; margin-bottom: 0; }
+    .channel-row .btn { margin-bottom: 0; height: 42px; }
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      background: #475569;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .toggle-switch.active { background: #059669; }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 20px;
+      height: 20px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle-switch.active::after { transform: translateX(20px); }
+    .feed-item.disabled { opacity: 0.5; }
+    .feed-item.disabled .feed-name { text-decoration: line-through; }
+    @media (max-width: 640px) {
+      body { padding: 1rem; }
+      .feed-item { flex-wrap: wrap; }
+      .feed-actions { width: 100%; justify-content: flex-end; }
+      .form-row { grid-template-columns: 1fr; }
+      .channel-row { flex-direction: column; align-items: stretch; }
+      .channel-row .btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>RSS to Discord</h1>
+    
+    <div class="card">
+      <div class="card-header">
+        <h2 class="collapse-toggle collapsed" onclick="toggleSettings()">Settings</h2>
+        <span id="settingsStatus" class="discord-status not-configured">
+          <span class="status-dot"></span>Not Configured
+        </span>
+      </div>
+      <div id="settingsContent" class="collapse-content">
+        <form id="settingsForm">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="clientId">Discord Client ID</label>
+              <input type="text" id="clientId" placeholder="123456789012345678">
+            </div>
+            <div class="form-group">
+              <label for="clientSecret">Discord Client Secret</label>
+              <input type="password" id="clientSecret" placeholder="••••••••">
+            </div>
+          </div>
+          <p class="help-text">
+            Get these from <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a>.
+            Create an app, then go to OAuth2 → General.
+          </p>
+          <div class="actions">
+            <button type="submit" class="btn btn-primary">Save Settings</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Add New Feed</h2>
+      <form id="addForm">
+        <div class="form-group">
+          <label for="name">Feed Name</label>
+          <input type="text" id="name" placeholder="TechCrunch" required>
+        </div>
+        <div class="form-group">
+          <label for="url">RSS URL</label>
+          <input type="url" id="url" placeholder="https://example.com/feed.xml" required>
+        </div>
+        <div class="form-group">
+          <label for="profileImage">Profile Image URL (optional)</label>
+          <input type="url" id="profileImage" placeholder="https://example.com/logo.png">
+        </div>
+        <div class="form-group">
+          <label>Discord Channel</label>
+          <div class="channel-row">
+            <div class="form-group">
+              <select id="discordChannel">
+                <option value="">-- Select channel --</option>
+              </select>
+            </div>
+            <a href="/api/discord/authorize" class="btn btn-discord" id="connectChannelBtn">Connect New</a>
+          </div>
+          <p class="help-text">Select an existing channel or connect a new one.</p>
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary">Add Feed</button>
+          <button type="button" class="btn btn-secondary" id="checkBtn">Check Now</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Registered Feeds</h2>
+      <div id="feedList" class="feed-list">
+        <div class="empty">Loading...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="editModal">
+    <div class="modal">
+      <h3>Edit Feed</h3>
+      <form id="editForm">
+        <input type="hidden" id="editId">
+        <div class="form-group">
+          <label for="editName">Feed Name</label>
+          <input type="text" id="editName" required>
+        </div>
+        <div class="form-group">
+          <label for="editUrl">RSS URL</label>
+          <input type="url" id="editUrl" required>
+        </div>
+        <div class="form-group">
+          <label for="editProfileImage">Profile Image URL</label>
+          <input type="url" id="editProfileImage" placeholder="https://example.com/logo.png">
+        </div>
+        <div class="form-group">
+          <label>Discord Channel</label>
+          <div class="channel-row">
+            <div class="form-group">
+              <select id="editDiscordChannel">
+                <option value="">-- No channel --</option>
+              </select>
+            </div>
+            <a href="#" class="btn btn-discord btn-sm" id="editConnectChannelBtn">Connect New</a>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API = '/api';
+    let discordConfigured = false;
+    let discordChannels = [];
+    let feedsData = [];
+    let newlyConnectedChannel = null;
+    
+    (function handleUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      
+      if (params.get('new_channel')) {
+        try {
+          newlyConnectedChannel = JSON.parse(decodeURIComponent(params.get('new_channel')));
+          showToast('Discord channel connected! Now add your feed.');
+        } catch (e) {
+          console.error('Failed to parse new channel', e);
+        }
+      } else if (params.get('success') === 'discord_connected') {
+        showToast('Discord connected successfully');
+      } else if (params.get('error')) {
+        const errorMsg = params.get('error');
+        if (errorMsg === 'discord_not_configured') {
+          showToast('Please configure Discord settings first', 'error');
+          toggleSettings(true);
+        } else {
+          showToast('Discord connection failed: ' + errorMsg, 'error');
+        }
+      }
+      
+      if (params.has('success') || params.has('error') || params.has('new_channel')) {
+        window.history.replaceState({}, '', '/');
+      }
+    })();
+
+    function toggleSettings(forceShow) {
+      const content = document.getElementById('settingsContent');
+      const toggle = document.querySelector('.collapse-toggle');
+      const shouldShow = forceShow === true || !content.classList.contains('show');
+      
+      content.classList.toggle('show', shouldShow);
+      toggle.classList.toggle('collapsed', !shouldShow);
+    }
+
+    async function loadSettings() {
+      try {
+        const res = await fetch(`${API}/settings`);
+        const settings = await res.json();
+        
+        document.getElementById('clientId').value = settings.discord_client_id || '';
+        document.getElementById('clientSecret').value = settings.discord_client_secret || '';
+        
+        discordConfigured = !!(settings.discord_client_id && settings.discord_client_secret);
+        updateSettingsStatus();
+        updateConnectButton();
+      } catch (e) {
+        console.error('Failed to load settings', e);
+      }
+    }
+
+    function updateConnectButton() {
+      const btn = document.getElementById('connectChannelBtn');
+      if (!discordConfigured) {
+        btn.href = '#';
+        btn.onclick = (e) => { e.preventDefault(); toggleSettings(true); showToast('Configure Discord settings first', 'error'); };
+      } else {
+        btn.href = '/api/discord/authorize';
+        btn.onclick = null;
+      }
+    }
+
+    async function loadDiscordChannels() {
+      try {
+        const res = await fetch(`${API}/discord/channels`);
+        discordChannels = await res.json();
+        updateChannelSelect();
+      } catch (e) {
+        console.error('Failed to load channels', e);
+      }
+    }
+
+    function updateChannelSelect() {
+      const select = document.getElementById('discordChannel');
+      select.innerHTML = '<option value="">-- Select channel --</option>';
+      
+      if (newlyConnectedChannel) {
+        const option = document.createElement('option');
+        option.value = JSON.stringify(newlyConnectedChannel);
+        option.textContent = '✨ Newly connected channel';
+        option.selected = true;
+        select.appendChild(option);
+      }
+      
+      for (const ch of discordChannels) {
+        if (newlyConnectedChannel && ch.channelId === newlyConnectedChannel.channelId) continue;
+        
+        const option = document.createElement('option');
+        option.value = JSON.stringify({ url: ch.webhookUrl, channelId: ch.channelId, guildId: ch.guildId });
+        option.textContent = `Channel (used by: ${ch.usedBy.join(', ')})`;
+        select.appendChild(option);
+      }
+    }
+
+    function updateSettingsStatus() {
+      const status = document.getElementById('settingsStatus');
+      if (discordConfigured) {
+        status.className = 'discord-status connected';
+        status.innerHTML = '<span class="status-dot"></span>Configured';
+      } else {
+        status.className = 'discord-status not-configured';
+        status.innerHTML = '<span class="status-dot"></span>Not Configured';
+      }
+    }
+
+    document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      form.classList.add('loading');
+      
+      try {
+        const res = await fetch(`${API}/settings`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            discord_client_id: document.getElementById('clientId').value,
+            discord_client_secret: document.getElementById('clientSecret').value
+          })
+        });
+        
+        if (!res.ok) throw new Error('Failed to save');
+        
+        showToast('Settings saved');
+        await loadSettings();
+      } catch (e) {
+        showToast('Failed to save settings', 'error');
+      } finally {
+        form.classList.remove('loading');
+      }
+    });
+    
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+
+    function formatTime(timestamp) {
+      if (!timestamp) return 'Never';
+      return new Date(timestamp).toLocaleString('ko-KR');
+    }
+
+    async function loadFeeds() {
+      try {
+        const res = await fetch(`${API}/feeds`);
+        feedsData = await res.json();
+        renderFeeds(feedsData);
+      } catch (e) {
+        showToast('Failed to load feeds', 'error');
+      }
+    }
+
+    function renderFeeds(feeds) {
+      const list = document.getElementById('feedList');
+      if (feeds.length === 0) {
+        list.innerHTML = '<div class="empty">No feeds registered yet</div>';
+        return;
+      }
+      list.innerHTML = feeds.map(feed => {
+        const isConnected = !!feed.webhookUrl;
+        const isEnabled = feed.enabled !== false;
+        let discordStatus;
+        
+        if (!discordConfigured) {
+          discordStatus = '<span class="discord-status not-configured"><span class="status-dot"></span>Configure Discord First</span>';
+        } else if (isConnected) {
+          discordStatus = '<span class="discord-status connected"><span class="status-dot"></span>Discord Connected</span>';
+        } else {
+          discordStatus = '<span class="discord-status disconnected"><span class="status-dot"></span>Not Connected</span>';
+        }
+
+        return `
+          <div class="feed-item${isEnabled ? '' : ' disabled'}" data-id="${feed.id}">
+            <img class="feed-avatar" src="${feed.profileImage || `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23475569%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22%2394a3b8%22>${feed.name.charAt(0).toUpperCase()}</text></svg>`}" 
+                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23475569%22 width=%22100%22 height=%22100%22/></svg>'">
+            <div class="feed-info">
+              <div class="feed-name">${escapeHtml(feed.name)}</div>
+              <div class="feed-url">${escapeHtml(feed.url)}</div>
+              <div class="feed-meta">
+                <span>Last checked: ${formatTime(feed.lastCheckedAt)}</span>
+                ${discordStatus}
+              </div>
+            </div>
+            <div class="feed-actions">
+              <button class="btn btn-secondary btn-sm" onclick="testFeed(${feed.id})">Test</button>
+              <button class="btn btn-secondary btn-sm" onclick="openEditModal(${feed.id})">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteFeed(${feed.id})">Delete</button>
+              <div class="toggle-switch${isEnabled ? ' active' : ''}" onclick="toggleFeedEnabled(${feed.id}, ${!isEnabled}, ${isConnected})" title="${isEnabled ? 'Click to disable' : 'Click to enable'}"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    document.getElementById('addForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      form.classList.add('loading');
+      
+      try {
+        const channelValue = document.getElementById('discordChannel').value;
+        let webhookData = {};
+        if (channelValue) {
+          const parsed = JSON.parse(channelValue);
+          webhookData = {
+            webhookUrl: parsed.url,
+            webhookChannelId: parsed.channelId,
+            webhookGuildId: parsed.guildId
+          };
+        }
+
+        const res = await fetch(`${API}/feeds`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: document.getElementById('name').value,
+            url: document.getElementById('url').value,
+            profileImage: document.getElementById('profileImage').value || undefined,
+            ...webhookData
+          })
+        });
+        
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to add feed');
+        }
+        
+        form.reset();
+        newlyConnectedChannel = null;
+        const msg = channelValue ? 'Feed added with Discord channel.' : 'Feed added. Connect Discord to start receiving notifications.';
+        showToast(msg);
+        await Promise.all([loadFeeds(), loadDiscordChannels()]);
+      } catch (e) {
+        showToast(e.message, 'error');
+      } finally {
+        form.classList.remove('loading');
+      }
+    });
+
+    document.getElementById('checkBtn').addEventListener('click', async function() {
+      this.classList.add('loading');
+      this.textContent = 'Checking...';
+      try {
+        await fetch(`${API}/check`, { method: 'POST' });
+        showToast('Feed check completed');
+        loadFeeds();
+      } catch (e) {
+        showToast('Check failed', 'error');
+      } finally {
+        this.classList.remove('loading');
+        this.textContent = 'Check Now';
+      }
+    });
+
+    async function deleteFeed(id) {
+      if (!confirm('Delete this feed?')) return;
+      try {
+        await fetch(`${API}/feeds/${id}`, { method: 'DELETE' });
+        showToast('Feed deleted');
+        await Promise.all([loadFeeds(), loadDiscordChannels()]);
+      } catch (e) {
+        showToast('Delete failed', 'error');
+      }
+    }
+
+    function openEditModal(id) {
+      const feed = feedsData.find(f => f.id === id);
+      if (!feed) return;
+
+      document.getElementById('editId').value = id;
+      document.getElementById('editName').value = feed.name;
+      document.getElementById('editUrl').value = feed.url;
+      document.getElementById('editProfileImage').value = feed.profileImage || '';
+      
+      // Populate channel dropdown
+      const select = document.getElementById('editDiscordChannel');
+      select.innerHTML = '<option value="">-- No channel --</option>';
+      
+      // Add current feed's channel if connected
+      if (feed.webhookUrl) {
+        const currentOption = document.createElement('option');
+        currentOption.value = JSON.stringify({ 
+          url: feed.webhookUrl, 
+          channelId: feed.webhookChannelId, 
+          guildId: feed.webhookGuildId 
+        });
+        currentOption.textContent = 'Current channel';
+        currentOption.selected = true;
+        select.appendChild(currentOption);
+      }
+      
+      // Add other available channels
+      for (const ch of discordChannels) {
+        if (feed.webhookChannelId && ch.channelId === feed.webhookChannelId) continue;
+        
+        const option = document.createElement('option');
+        option.value = JSON.stringify({ url: ch.webhookUrl, channelId: ch.channelId, guildId: ch.guildId });
+        option.textContent = `Channel (used by: ${ch.usedBy.join(', ')})`;
+        select.appendChild(option);
+      }
+      
+      // Update Connect New button href
+      document.getElementById('editConnectChannelBtn').href = `/api/discord/authorize?feedId=${id}`;
+      
+      document.getElementById('editModal').classList.add('show');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('show');
+    }
+
+    document.getElementById('editForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      form.classList.add('loading');
+      
+      const id = document.getElementById('editId').value;
+      const channelValue = document.getElementById('editDiscordChannel').value;
+      
+      let webhookData = {};
+      if (channelValue) {
+        const parsed = JSON.parse(channelValue);
+        webhookData = {
+          webhookUrl: parsed.url,
+          webhookChannelId: parsed.channelId,
+          webhookGuildId: parsed.guildId
+        };
+      } else {
+        // Clear webhook if no channel selected
+        webhookData = {
+          webhookUrl: null,
+          webhookChannelId: null,
+          webhookGuildId: null
+        };
+      }
+      
+      try {
+        const res = await fetch(`${API}/feeds/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: document.getElementById('editName').value,
+            url: document.getElementById('editUrl').value,
+            profileImage: document.getElementById('editProfileImage').value || null,
+            ...webhookData
+          })
+        });
+        
+        if (!res.ok) throw new Error('Failed to update');
+        
+        closeEditModal();
+        showToast('Feed updated');
+        await Promise.all([loadFeeds(), loadDiscordChannels()]);
+      } catch (e) {
+        showToast('Update failed', 'error');
+      } finally {
+        form.classList.remove('loading');
+      }
+    });
+
+    document.getElementById('editModal').addEventListener('click', (e) => {
+      if (e.target.id === 'editModal') closeEditModal();
+    });
+
+    async function disconnectDiscord(id) {
+      if (!confirm('Disconnect Discord from this feed?')) return;
+      try {
+        await fetch(`${API}/discord/${id}`, { method: 'DELETE' });
+        showToast('Discord disconnected');
+        await Promise.all([loadFeeds(), loadDiscordChannels()]);
+      } catch (e) {
+        showToast('Disconnect failed', 'error');
+      }
+    }
+
+    async function toggleFeedEnabled(id, enabled, isConnected) {
+      // When enabling, check if Discord is connected
+      if (enabled && !isConnected) {
+        showToast('Discord not connected. Please edit the feed to connect a channel first.', 'error');
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API}/feeds/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled })
+        });
+        
+        if (!res.ok) throw new Error('Failed to update');
+        
+        showToast(enabled ? 'Feed enabled' : 'Feed disabled');
+        loadFeeds();
+      } catch (e) {
+        showToast('Update failed', 'error');
+      }
+    }
+
+    async function testFeed(id) {
+      const feed = feedsData.find(f => f.id === id);
+      if (!feed) return;
+
+      // Check if Discord is connected
+      if (!feed.webhookUrl) {
+        showToast('Discord not connected. Please edit the feed to connect a channel first.', 'error');
+        return;
+      }
+
+      // Confirm before sending
+      if (!confirm(`Send a test message for "${feed.name}" to Discord?\n\nThis will fetch the latest RSS item and send it to the connected channel.`)) {
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/feeds/${id}/test`, { method: 'POST' });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Test failed');
+        }
+        
+        showToast(data.message || 'Test message sent successfully!');
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+
+    Promise.all([loadSettings(), loadDiscordChannels()]).then(loadFeeds);
+  </script>
+</body>
+</html>

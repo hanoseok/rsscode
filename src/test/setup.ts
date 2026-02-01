@@ -20,7 +20,8 @@ beforeAll(() => {
       webhook_guild_id TEXT,
       enabled INTEGER NOT NULL DEFAULT 1,
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-      last_checked_at INTEGER
+      last_checked_at INTEGER,
+      last_checked_title TEXT
     );
 
     CREATE TABLE IF NOT EXISTS posts (

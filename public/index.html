@@ -494,6 +494,11 @@
       return new Date(timestamp).toLocaleString('ko-KR');
     }
 
+    function truncate(str, len) {
+      if (!str) return '';
+      return str.length > len ? str.substring(0, len) + '...' : str;
+    }
+
     async function loadFeeds() {
       try {
         const res = await fetch(`${API}/feeds`);
@@ -531,7 +536,10 @@
               <div class="feed-name">${escapeHtml(feed.name)}</div>
               <div class="feed-url">${escapeHtml(feed.url)}</div>
               <div class="feed-meta">
-                <span>Last checked: ${formatTime(feed.lastCheckedAt)}</span>
+                <span>Checked: ${formatTime(feed.lastCheckedAt)}${feed.lastCheckedTitle ? ` - ${escapeHtml(truncate(feed.lastCheckedTitle, 30))}` : ''}</span>
+              </div>
+              <div class="feed-meta">
+                <span>Sent: ${formatTime(feed.lastSentAt)}${feed.lastSentTitle ? ` - ${escapeHtml(truncate(feed.lastSentTitle, 30))}` : ''}</span>
                 ${discordStatus}
               </div>
             </div>

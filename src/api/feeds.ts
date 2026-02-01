@@ -1,8 +1,8 @@
 import { Router } from "express";
 import Parser from "rss-parser";
 import { db } from "../db/index.js";
-import { feeds } from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { feeds, posts } from "../db/schema.js";
+import { eq, desc } from "drizzle-orm";
 import { createFeedSchema, updateFeedSchema } from "../types/index.js";
 import { sendToDiscord } from "../services/discord.js";
 
@@ -19,7 +19,26 @@ const router = Router();
 router.get("/", async (_req, res) => {
   try {
     const allFeeds = await db.select().from(feeds);
-    res.json(allFeeds);
+    
+    const feedsWithLastSent = await Promise.all(
+      allFeeds.map(async (feed) => {
+        const lastPost = await db
+          .select()
+          .from(posts)
+          .where(eq(posts.feedId, feed.id))
+          .orderBy(desc(posts.sentAt))
+          .limit(1)
+          .get();
+        
+        return {
+          ...feed,
+          lastSentAt: lastPost?.sentAt || null,
+          lastSentTitle: lastPost?.title || null,
+        };
+      })
+    );
+    
+    res.json(feedsWithLastSent);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch feeds" });
   }

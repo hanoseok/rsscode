@@ -13,6 +13,7 @@ export const feeds = sqliteTable("feeds", {
     .notNull()
     .$defaultFn(() => new Date()),
   lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
+  lastCheckedTitle: text("last_checked_title"),
 });
 
 export const posts = sqliteTable("posts", {

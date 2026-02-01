@@ -53,6 +53,7 @@ export function initDatabase() {
     "ALTER TABLE feeds ADD COLUMN webhook_channel_id TEXT",
     "ALTER TABLE feeds ADD COLUMN webhook_guild_id TEXT",
     "ALTER TABLE feeds ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1",
+    "ALTER TABLE feeds ADD COLUMN last_checked_title TEXT",
   ];
 
   for (const sql of migrations) {

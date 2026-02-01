@@ -29,6 +29,7 @@ export async function checkFeed(feed: Feed): Promise<number> {
   try {
     const rssFeed = await parser.parseURL(feed.url);
     let newPostCount = 0;
+    const latestTitle = (rssFeed.items[0] as RSSItem)?.title || null;
 
     for (const item of rssFeed.items as RSSItem[]) {
       const guid = item.guid || item.link;
@@ -72,7 +73,7 @@ export async function checkFeed(feed: Feed): Promise<number> {
 
     await db
       .update(feeds)
-      .set({ lastCheckedAt: new Date() })
+      .set({ lastCheckedAt: new Date(), lastCheckedTitle: latestTitle })
       .where(eq(feeds.id, feed.id));
 
     return newPostCount;

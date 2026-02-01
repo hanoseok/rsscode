@@ -2,7 +2,7 @@ import { Router } from "express";
 import Parser from "rss-parser";
 import { db } from "../db/index.js";
 import { feeds, posts } from "../db/schema.js";
-import { eq, desc } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { createFeedSchema, updateFeedSchema } from "../types/index.js";
 import { sendToDiscord } from "../services/discord.js";
 
@@ -19,26 +19,7 @@ const router = Router();
 router.get("/", async (_req, res) => {
   try {
     const allFeeds = await db.select().from(feeds);
-    
-    const feedsWithLastSent = await Promise.all(
-      allFeeds.map(async (feed) => {
-        const lastPost = await db
-          .select()
-          .from(posts)
-          .where(eq(posts.feedId, feed.id))
-          .orderBy(desc(posts.sentAt))
-          .limit(1)
-          .get();
-        
-        return {
-          ...feed,
-          lastSentAt: lastPost?.sentAt || null,
-          lastSentTitle: lastPost?.title || null,
-        };
-      })
-    );
-    
-    res.json(feedsWithLastSent);
+    res.json(allFeeds);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch feeds" });
   }
@@ -193,9 +174,15 @@ router.post("/:id/test", async (req, res) => {
         })
         .onConflictDoNothing();
 
+      const now = new Date();
       await db
         .update(feeds)
-        .set({ lastCheckedAt: new Date(), lastCheckedTitle: latestItem.title })
+        .set({
+          lastCheckedAt: now,
+          lastCheckedTitle: latestItem.title,
+          lastSentAt: now,
+          lastSentTitle: latestItem.title,
+        })
         .where(eq(feeds.id, id));
 
       res.json({ message: `Test message sent: "${latestItem.title}"` });

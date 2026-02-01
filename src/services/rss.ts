@@ -84,6 +84,12 @@ export async function checkFeed(feed: Feed): Promise<number> {
             publishedAt,
           });
 
+          const now = new Date();
+          await db
+            .update(feeds)
+            .set({ lastSentAt: now, lastSentTitle: item.title })
+            .where(eq(feeds.id, feed.id));
+
           newPostCount++;
         }
       }

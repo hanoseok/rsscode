@@ -21,7 +21,9 @@ beforeAll(() => {
       enabled INTEGER NOT NULL DEFAULT 1,
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
       last_checked_at INTEGER,
-      last_checked_title TEXT
+      last_checked_title TEXT,
+      last_sent_at INTEGER,
+      last_sent_title TEXT
     );
 
     CREATE TABLE IF NOT EXISTS posts (

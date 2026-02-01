@@ -14,6 +14,8 @@ export const feeds = sqliteTable("feeds", {
     .$defaultFn(() => new Date()),
   lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
   lastCheckedTitle: text("last_checked_title"),
+  lastSentAt: integer("last_sent_at", { mode: "timestamp" }),
+  lastSentTitle: text("last_sent_title"),
 });
 
 export const posts = sqliteTable("posts", {

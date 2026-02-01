@@ -227,6 +227,11 @@
             Get these from <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a>.
             Create an app, then go to OAuth2 → General.
           </p>
+          <div class="form-group" style="margin-top: 1rem;">
+            <label for="checkInterval">Check Interval (minutes)</label>
+            <input type="number" id="checkInterval" min="1" max="1440" value="10" style="width: 120px;">
+            <span class="help-text" style="display: inline; margin-left: 0.5rem;">1 ~ 1440 (24h)</span>
+          </div>
           <div class="actions">
             <button type="submit" class="btn btn-primary">Save Settings</button>
           </div>
@@ -362,6 +367,7 @@
         
         document.getElementById('clientId').value = settings.discord_client_id || '';
         document.getElementById('clientSecret').value = settings.discord_client_secret || '';
+        document.getElementById('checkInterval').value = settings.check_interval_minutes || '10';
         
         discordConfigured = !!(settings.discord_client_id && settings.discord_client_secret);
         updateSettingsStatus();
@@ -431,18 +437,20 @@
       form.classList.add('loading');
       
       try {
+        const interval = parseInt(document.getElementById('checkInterval').value) || 10;
         const res = await fetch(`${API}/settings`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             discord_client_id: document.getElementById('clientId').value,
-            discord_client_secret: document.getElementById('clientSecret').value
+            discord_client_secret: document.getElementById('clientSecret').value,
+            check_interval_minutes: interval
           })
         });
         
         if (!res.ok) throw new Error('Failed to save');
         
-        showToast('Settings saved');
+        showToast(`Settings saved (check every ${interval} min)`);
         await loadSettings();
       } catch (e) {
         showToast('Failed to save settings', 'error');

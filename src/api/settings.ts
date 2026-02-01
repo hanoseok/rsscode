@@ -3,14 +3,20 @@ import { db } from "../db/index.js";
 import { settings } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { restartScheduler } from "../services/scheduler.js";
 
 const router = Router();
 
-const SETTING_KEYS = ["discord_client_id", "discord_client_secret"] as const;
+const SETTING_KEYS = [
+  "discord_client_id",
+  "discord_client_secret",
+  "check_interval_minutes",
+] as const;
 
 const updateSettingsSchema = z.object({
   discord_client_id: z.string().optional(),
   discord_client_secret: z.string().optional(),
+  check_interval_minutes: z.number().min(1).max(1440).optional(),
 });
 
 export async function getSetting(key: string): Promise<string | null> {
@@ -55,14 +61,25 @@ router.put("/", async (req, res) => {
       return;
     }
 
+    let intervalChanged = false;
+
     for (const [key, value] of Object.entries(parsed.data)) {
       if (value === undefined) continue;
       if (key === "discord_client_secret" && value === "••••••••") continue;
 
+      const stringValue = String(value);
       await db
         .insert(settings)
-        .values({ key, value })
-        .onConflictDoUpdate({ target: settings.key, set: { value } });
+        .values({ key, value: stringValue })
+        .onConflictDoUpdate({ target: settings.key, set: { value: stringValue } });
+
+      if (key === "check_interval_minutes") {
+        intervalChanged = true;
+      }
+    }
+
+    if (intervalChanged) {
+      await restartScheduler();
     }
 
     res.json({ success: true });

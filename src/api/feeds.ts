@@ -124,7 +124,15 @@ router.post("/:id/test", async (req, res) => {
       return;
     }
 
-    const rssFeed = await parser.parseURL(feed.url);
+    let rssFeed;
+    try {
+      rssFeed = await parser.parseURL(feed.url);
+    } catch (rssError) {
+      console.error("RSS fetch failed:", rssError);
+      res.status(400).json({ error: `Failed to fetch RSS: ${feed.url}` });
+      return;
+    }
+
     const latestItem = rssFeed.items[0];
 
     if (!latestItem || !latestItem.title || !latestItem.link) {
@@ -143,11 +151,11 @@ router.post("/:id/test", async (req, res) => {
     if (sent) {
       res.json({ message: `Test message sent: "${latestItem.title}"` });
     } else {
-      res.status(500).json({ error: "Failed to send to Discord" });
+      res.status(500).json({ error: "Failed to send to Discord. Check webhook URL." });
     }
   } catch (error) {
     console.error("Test send failed:", error);
-    res.status(500).json({ error: "Failed to fetch RSS or send to Discord" });
+    res.status(500).json({ error: "Unexpected error during test" });
   }
 });
 

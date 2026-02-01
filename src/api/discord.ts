@@ -13,7 +13,25 @@ interface DiscordTokenResponse {
     url: string;
     channel_id: string;
     guild_id: string;
+    name?: string;
   };
+}
+
+interface WebhookInfo {
+  name?: string;
+  guild?: { name?: string };
+  channel?: { name?: string };
+}
+
+async function fetchWebhookInfo(webhookUrl: string): Promise<string | null> {
+  try {
+    const res = await fetch(webhookUrl);
+    if (!res.ok) return null;
+    const data = await res.json() as WebhookInfo;
+    return data.name || null;
+  } catch {
+    return null;
+  }
 }
 
 function getRedirectUri(req: { protocol: string; get: (name: string) => string | undefined }) {
@@ -101,6 +119,7 @@ router.get("/callback", async (req, res) => {
     }
 
     const { url, channel_id, guild_id } = tokenData.webhook;
+    const webhookName = tokenData.webhook.name || await fetchWebhookInfo(url);
 
     if (feedId) {
       await db
@@ -109,13 +128,14 @@ router.get("/callback", async (req, res) => {
           webhookUrl: url,
           webhookChannelId: channel_id,
           webhookGuildId: guild_id,
+          webhookName: webhookName,
         })
         .where(eq(feeds.id, parseInt(feedId)));
 
       res.redirect("/?success=discord_connected");
     } else {
       const webhookData = encodeURIComponent(
-        JSON.stringify({ url, channelId: channel_id, guildId: guild_id })
+        JSON.stringify({ url, channelId: channel_id, guildId: guild_id, name: webhookName })
       );
       res.redirect(`/?new_channel=${webhookData}`);
     }

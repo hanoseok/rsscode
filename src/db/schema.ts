@@ -8,6 +8,7 @@ export const feeds = sqliteTable("feeds", {
   webhookUrl: text("webhook_url"),
   webhookChannelId: text("webhook_channel_id"),
   webhookGuildId: text("webhook_guild_id"),
+  webhookName: text("webhook_name"),
   enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

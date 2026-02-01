@@ -423,7 +423,7 @@
       
       if (connectedChannel) {
         status.className = 'channel-info connected';
-        status.textContent = 'Connected';
+        status.textContent = connectedChannel.name || 'Connected';
         btn.textContent = 'Change';
       } else {
         status.className = 'channel-info not-connected';
@@ -637,7 +637,8 @@
           webhookData = {
             webhookUrl: connectedChannel.url,
             webhookChannelId: connectedChannel.channelId,
-            webhookGuildId: connectedChannel.guildId
+            webhookGuildId: connectedChannel.guildId,
+            webhookName: connectedChannel.name
           };
         }
 
@@ -726,7 +727,7 @@
       
       if (feed.webhookUrl) {
         status.className = 'channel-info connected';
-        status.textContent = 'Connected';
+        status.textContent = feed.webhookName || 'Connected';
         btn.textContent = 'Change';
       } else {
         status.className = 'channel-info not-connected';

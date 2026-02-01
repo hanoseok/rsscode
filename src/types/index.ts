@@ -7,6 +7,7 @@ export const createFeedSchema = z.object({
   webhookUrl: z.string().url().optional(),
   webhookChannelId: z.string().optional(),
   webhookGuildId: z.string().optional(),
+  webhookName: z.string().optional(),
   enabled: z.boolean().optional().default(true),
 });
 
@@ -17,6 +18,7 @@ export const updateFeedSchema = z.object({
   webhookUrl: z.string().url().nullable().optional(),
   webhookChannelId: z.string().nullable().optional(),
   webhookGuildId: z.string().nullable().optional(),
+  webhookName: z.string().nullable().optional(),
   enabled: z.boolean().optional(),
 });
 

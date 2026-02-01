@@ -18,6 +18,7 @@ beforeAll(() => {
       webhook_url TEXT,
       webhook_channel_id TEXT,
       webhook_guild_id TEXT,
+      webhook_name TEXT,
       enabled INTEGER NOT NULL DEFAULT 1,
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
       last_checked_at INTEGER,

@@ -56,6 +56,7 @@ export function initDatabase() {
     "ALTER TABLE feeds ADD COLUMN last_checked_title TEXT",
     "ALTER TABLE feeds ADD COLUMN last_sent_at INTEGER",
     "ALTER TABLE feeds ADD COLUMN last_sent_title TEXT",
+    "ALTER TABLE feeds ADD COLUMN webhook_name TEXT",
   ];
 
   for (const sql of migrations) {

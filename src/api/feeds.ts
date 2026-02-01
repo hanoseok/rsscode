@@ -56,6 +56,7 @@ router.post("/", async (req, res) => {
         webhookUrl: parsed.data.webhookUrl,
         webhookChannelId: parsed.data.webhookChannelId,
         webhookGuildId: parsed.data.webhookGuildId,
+        webhookName: parsed.data.webhookName,
       })
       .returning();
 

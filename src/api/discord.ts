@@ -18,7 +18,7 @@ interface DiscordTokenResponse {
 
 function getRedirectUri(req: { protocol: string; get: (name: string) => string | undefined }) {
   const host = req.get("host") || "localhost:3000";
-  const protocol = req.get("x-forwarded-proto") || req.protocol;
+  const protocol = process.env.NODE_ENV === "production" ? "https" : req.protocol;
   return `${protocol}://${host}/api/discord/callback`;
 }
 

@@ -15,6 +15,7 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
 | 테스트 전송 | 최신 RSS 항목을 Discord로 테스트 전송 |
 | 자동 스케줄링 | 설정 가능한 주기로 새 글 확인 (1-1440분) |
 | 웹 UI | 다크 테마의 관리자 인터페이스 |
+| 스마트 알림 | 첫 체크 시 기존 글은 저장만, 새 글만 알림 |
 
 ---
 
@@ -89,9 +90,13 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
 | `webhook_url` | TEXT | Discord Webhook URL |
 | `webhook_channel_id` | TEXT | Discord 채널 ID |
 | `webhook_guild_id` | TEXT | Discord 서버 ID |
+| `webhook_name` | TEXT | Webhook 이름 |
 | `enabled` | INTEGER | 활성화 여부 (0/1, 기본값 1) |
 | `created_at` | INTEGER | 생성 시간 (Unix timestamp) |
 | `last_checked_at` | INTEGER | 마지막 체크 시간 |
+| `last_checked_title` | TEXT | 마지막 체크한 글 제목 |
+| `last_sent_at` | INTEGER | 마지막 전송 시간 |
+| `last_sent_title` | TEXT | 마지막 전송한 글 제목 |
 
 ### 4.2 posts 테이블
 | 컬럼 | 타입 | 설명 |
@@ -137,9 +142,13 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
     "webhookUrl": "https://discord.com/api/webhooks/...",
     "webhookChannelId": "123456789",
     "webhookGuildId": "987654321",
+    "webhookName": "RSS to Discord",
     "enabled": true,
     "createdAt": "2024-01-01T00:00:00.000Z",
-    "lastCheckedAt": "2024-01-01T12:00:00.000Z"
+    "lastCheckedAt": "2024-01-01T12:00:00.000Z",
+    "lastCheckedTitle": "Latest Article",
+    "lastSentAt": "2024-01-01T12:00:00.000Z",
+    "lastSentTitle": "Latest Article"
   }
 ]
 ```
@@ -155,7 +164,8 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
   "profileImage": "https://example.com/logo.png",
   "webhookUrl": "https://discord.com/api/webhooks/...",
   "webhookChannelId": "123456789",
-  "webhookGuildId": "987654321"
+  "webhookGuildId": "987654321",
+  "webhookName": "RSS to Discord"
 }
 ```
 
@@ -174,9 +184,6 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
   "name": "New Name",
   "url": "https://new-url.com/feed/",
   "profileImage": "https://example.com/new-logo.png",
-  "webhookUrl": "https://discord.com/api/webhooks/...",
-  "webhookChannelId": "123456789",
-  "webhookGuildId": "987654321",
   "enabled": false
 }
 ```
@@ -189,7 +196,7 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
 **Response**: `204 No Content`
 
 #### `POST /api/feeds/:id/test`
-테스트 메시지 전송
+테스트 메시지 전송 (lastCheckedAt/lastSentAt 업데이트)
 
 **Response**: `200 OK`
 ```json
@@ -199,7 +206,7 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
 ```
 
 **Errors**:
-- `400 Bad Request`: Discord 미연결 또는 RSS 항목 없음
+- `400 Bad Request`: Discord 미연결, RSS fetch 실패, RSS 항목 없음
 - `404 Not Found`: 피드 없음
 
 ---
@@ -318,7 +325,7 @@ Discord OAuth 콜백 (내부 사용)
 ### 7.1 OAuth2 Flow
 
 ```
-1. 사용자 → "Connect New" 클릭
+1. 사용자 → "Connect" 클릭
           ↓
 2. 서버 → Discord OAuth URL 생성 (scope: webhook.incoming)
           ↓
@@ -328,7 +335,7 @@ Discord OAuth 콜백 (내부 사용)
           ↓
 5. 서버 → Code로 Token 교환 → Webhook 정보 수신
           ↓
-6. 서버 → Webhook URL을 DB에 저장
+6. 서버 → Webhook URL, Name을 DB에 저장
 ```
 
 ### 7.2 Webhook 메시지 포맷
@@ -341,8 +348,8 @@ Discord OAuth 콜백 (내부 사용)
     {
       "title": "글 제목",
       "url": "글 URL",
-      "color": 5793266,
-      "timestamp": "2024-01-01T12:00:00.000Z"
+      "description": "본문 미리보기 (최대 200자)...",
+      "color": 5793266
     }
   ]
 }
@@ -361,17 +368,55 @@ Discord OAuth 콜백 (내부 사용)
 ```
 1. 활성화된 피드 목록 조회
 2. 각 피드에 대해:
-   a. RSS 파싱
+   a. RSS 파싱 (User-Agent 헤더 포함)
    b. 각 항목의 guid로 중복 체크
-   c. 새 항목이면:
-      - Discord로 전송
-      - posts 테이블에 기록
-   d. feed.last_checked_at 업데이트
+   c. lastSentAt이 null이면 (첫 체크):
+      - 모든 항목을 posts에 저장만 (전송 안함)
+   d. lastSentAt이 있으면:
+      - 항목의 publishedAt > lastSentAt인 경우만 Discord 전송
+      - lastSentAt, lastSentTitle 업데이트
+   e. lastCheckedAt, lastCheckedTitle 업데이트
 ```
+
+### 8.3 알림 규칙
+| 조건 | 동작 |
+|------|------|
+| `lastSentAt` 없음 (첫 체크) | 저장만, 전송 안함 |
+| 항목 발행일 ≤ `lastSentAt` | 저장만, 전송 안함 |
+| 항목 발행일 > `lastSentAt` | Discord 전송 |
 
 ---
 
-## 9. 프로젝트 구조
+## 9. 웹 UI 기능
+
+### 9.1 Settings
+- Discord Client ID/Secret 설정
+- Check Interval 설정 (1-1440분)
+- 마지막 체크 시간 / 다음 체크까지 남은 시간 표시
+
+### 9.2 Add Feed (모달)
+- Discord Channel 연결 (맨 위)
+- Feed Name, RSS URL, Profile Image URL 입력
+- Profile Image 미리보기
+
+### 9.3 Registered Feeds
+- 스크롤 가능 (최대 60vh)
+- lastSentAt 기준 내림차순 정렬
+- 각 피드 표시:
+  - 프로필 이미지, 이름, URL
+  - Checked: 마지막 체크 시간 + 제목
+  - Sent: 마지막 전송 시간 + 제목
+  - Test / Edit / Delete 버튼
+  - 활성화 토글
+
+### 9.4 Edit Feed (모달)
+- Discord Channel 상태 표시 (Webhook: 이름)
+- Feed Name, RSS URL, Profile Image URL 수정
+- Profile Image 미리보기
+
+---
+
+## 10. 프로젝트 구조
 
 ```
 rsscode/
@@ -398,7 +443,8 @@ rsscode/
 │   └── index.html            # 웹 UI (SPA)
 ├── .github/
 │   └── workflows/
-│       └── docker.yml        # CI/CD
+│       ├── ci.yml            # 테스트 워크플로우
+│       └── docker.yml        # Docker 빌드 (태그 전용)
 ├── Dockerfile
 ├── docker-compose.yml
 ├── package.json
@@ -408,44 +454,59 @@ rsscode/
 
 ---
 
-## 10. 배포
+## 11. 배포
 
-### 10.1 Docker 이미지
+### 11.1 Docker 이미지
 
 **레지스트리**: Docker Hub (`hanoseok/rsscode`)
 
 **태그 규칙**:
 | 트리거 | 태그 |
 |--------|------|
-| `main` 브랜치 push | `latest` |
-| `v1.2.3` 태그 push | `1.2.3`, `1.2`, `1`, `latest` |
+| `v1.2.3` 태그 push | `v1.2.3`, `latest` |
 
-### 10.2 CI/CD Pipeline
+### 11.2 CI/CD Pipeline
 
 ```
-1. GitHub에 push/tag
+1. GitHub에 tag push (v*)
        ↓
 2. GitHub Actions 트리거
        ↓
-3. Docker 이미지 빌드
+3. 테스트 실행
        ↓
-4. Docker Hub에 push
+4. Docker 이미지 빌드
        ↓
-5. (수동) NAS에서 이미지 업데이트
+5. Docker Hub에 push
+       ↓
+6. (수동) NAS에서 이미지 업데이트
 ```
 
 ---
 
-## 11. 버전 히스토리
+## 12. 버전 히스토리
 
 | 버전 | 날짜 | 변경 사항 |
 |------|------|----------|
 | v0.1.0 | 2024-02-01 | 초기 릴리즈 |
 | v0.2.0 | 2024-02-01 | Discord OAuth HTTPS 프로토콜 수정 |
 | v0.3.0 | 2024-02-01 | 환경변수 지원 (Discord credentials, Check interval) |
+| v0.4.0 | 2024-02-01 | Form persistence during OAuth, simplified channel UI |
+| v0.5.0 | 2024-02-01 | Discord message format (title+link, 200 char content) |
+| v0.6.0 | 2024-02-02 | Smart notifications, UI improvements, webhook name display |
+
+### v0.6.0 상세 변경사항
+- 첫 체크 시 기존 글 저장만 (알림 안함)
+- lastSentAt 이전 글은 절대 전송 안함
+- Add New Feed 모달로 변경
+- 피드 목록 스크롤 가능, lastSentAt 기준 정렬
+- Profile Image 미리보기
+- 마지막 체크/전송 시간 및 제목 표시
+- 다음 체크 시간 카운트다운
+- Webhook 이름 표시
+- RSS 파서 User-Agent 헤더 추가 (일부 서버 호환성)
 
 ---
 
-## 12. 라이선스
+## 13. 라이선스
 
 MIT License

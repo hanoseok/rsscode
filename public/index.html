@@ -423,7 +423,7 @@
       
       if (connectedChannel) {
         status.className = 'channel-info connected';
-        status.textContent = connectedChannel.name || 'Connected';
+        status.textContent = connectedChannel.name ? `Webhook: ${connectedChannel.name}` : 'Webhook connected';
         btn.textContent = 'Change';
       } else {
         status.className = 'channel-info not-connected';
@@ -727,7 +727,7 @@
       
       if (feed.webhookUrl) {
         status.className = 'channel-info connected';
-        status.textContent = feed.webhookName || 'Connected';
+        status.textContent = feed.webhookName ? `Webhook: ${feed.webhookName}` : 'Webhook connected';
         btn.textContent = 'Change';
       } else {
         status.className = 'channel-info not-connected';

@@ -518,15 +518,6 @@
       list.innerHTML = feeds.map(feed => {
         const isConnected = !!feed.webhookUrl;
         const isEnabled = feed.enabled !== false;
-        let discordStatus;
-        
-        if (!discordConfigured) {
-          discordStatus = '<span class="discord-status not-configured"><span class="status-dot"></span>Configure Discord First</span>';
-        } else if (isConnected) {
-          discordStatus = '<span class="discord-status connected"><span class="status-dot"></span>Discord Connected</span>';
-        } else {
-          discordStatus = '<span class="discord-status disconnected"><span class="status-dot"></span>Not Connected</span>';
-        }
 
         return `
           <div class="feed-item${isEnabled ? '' : ' disabled'}" data-id="${feed.id}">
@@ -540,7 +531,6 @@
               </div>
               <div class="feed-meta">
                 <span>Sent: ${formatTime(feed.lastSentAt)}${feed.lastSentTitle ? ` - ${escapeHtml(truncate(feed.lastSentTitle, 30))}` : ''}</span>
-                ${discordStatus}
               </div>
             </div>
             <div class="feed-actions">

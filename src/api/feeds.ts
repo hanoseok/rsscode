@@ -175,6 +175,29 @@ router.post("/:id/test", async (req, res) => {
     });
 
     if (sent) {
+      const guid = latestItem.guid || latestItem.link;
+      const publishedAt = latestItem.isoDate
+        ? new Date(latestItem.isoDate)
+        : latestItem.pubDate
+          ? new Date(latestItem.pubDate)
+          : undefined;
+
+      await db
+        .insert(posts)
+        .values({
+          feedId: feed.id,
+          guid: guid!,
+          title: latestItem.title,
+          link: latestItem.link,
+          publishedAt,
+        })
+        .onConflictDoNothing();
+
+      await db
+        .update(feeds)
+        .set({ lastCheckedAt: new Date(), lastCheckedTitle: latestItem.title })
+        .where(eq(feeds.id, id));
+
       res.json({ message: `Test message sent: "${latestItem.title}"` });
     } else {
       res.status(500).json({ error: "Failed to send to Discord. Check webhook URL." });

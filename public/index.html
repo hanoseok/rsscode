@@ -63,7 +63,7 @@
     .btn-discord:hover { background: #4752c4; }
     .btn-sm { padding: 0.5rem 1rem; font-size: 0.8rem; }
     .actions { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
-    .feed-list { display: flex; flex-direction: column; gap: 1rem; }
+    .feed-list { display: flex; flex-direction: column; gap: 1rem; max-height: 60vh; overflow-y: auto; }
     .feed-item {
       display: flex;
       align-items: flex-start;
@@ -163,6 +163,16 @@
     .modal h3 { font-size: 1.1rem; margin-bottom: 1.5rem; color: #f8fafc; }
     .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem; }
     .channel-row { display: flex; gap: 0.5rem; align-items: center; }
+    .image-input-row { display: flex; gap: 0.5rem; align-items: center; }
+    .image-input-row input { flex: 1; }
+    .image-preview {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: #334155;
+      flex-shrink: 0;
+    }
     .channel-info {
       flex: 1;
       padding: 0.75rem 1rem;
@@ -248,36 +258,13 @@
     </div>
 
     <div class="card">
-      <h2>Add New Feed</h2>
-      <form id="addForm">
-        <div class="form-group">
-          <label>Discord Channel</label>
-          <div class="channel-row">
-            <a href="/api/discord/authorize" class="btn btn-discord" id="connectChannelBtn">Connect</a>
-            <div id="channelStatus" class="channel-info not-connected">Not connected</div>
-          </div>
+      <div class="card-header">
+        <h2>Registered Feeds</h2>
+        <div class="actions" style="margin-top: 0;">
+          <button type="button" class="btn btn-primary btn-sm" onclick="openAddModal()">Add Feed</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="checkBtn">Check Now</button>
         </div>
-        <div class="form-group">
-          <label for="name">Feed Name</label>
-          <input type="text" id="name" placeholder="TechCrunch" required>
-        </div>
-        <div class="form-group">
-          <label for="url">RSS URL</label>
-          <input type="url" id="url" placeholder="https://example.com/feed.xml" required>
-        </div>
-        <div class="form-group">
-          <label for="profileImage">Profile Image URL (optional)</label>
-          <input type="url" id="profileImage" placeholder="https://example.com/logo.png">
-        </div>
-        <div class="actions">
-          <button type="submit" class="btn btn-primary">Add Feed</button>
-          <button type="button" class="btn btn-secondary" id="checkBtn">Check Now</button>
-        </div>
-      </form>
-    </div>
-
-    <div class="card">
-      <h2>Registered Feeds</h2>
+      </div>
       <div id="feedList" class="feed-list">
         <div class="empty">Loading...</div>
       </div>
@@ -306,11 +293,48 @@
         </div>
         <div class="form-group">
           <label for="editProfileImage">Profile Image URL</label>
-          <input type="url" id="editProfileImage" placeholder="https://example.com/logo.png">
+          <div class="image-input-row">
+            <input type="url" id="editProfileImage" placeholder="https://example.com/logo.png" oninput="updateProfilePreview('editProfileImage', 'editProfilePreview')">
+            <img id="editProfilePreview" class="image-preview" style="display: none;">
+          </div>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
           <button type="submit" class="btn btn-primary">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="addModal">
+    <div class="modal">
+      <h3>Add New Feed</h3>
+      <form id="addForm">
+        <div class="form-group">
+          <label>Discord Channel</label>
+          <div class="channel-row">
+            <a href="/api/discord/authorize" class="btn btn-discord btn-sm" id="connectChannelBtn">Connect</a>
+            <div id="channelStatus" class="channel-info not-connected">Not connected</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="name">Feed Name</label>
+          <input type="text" id="name" placeholder="TechCrunch" required>
+        </div>
+        <div class="form-group">
+          <label for="url">RSS URL</label>
+          <input type="url" id="url" placeholder="https://example.com/feed.xml" required>
+        </div>
+        <div class="form-group">
+          <label for="profileImage">Profile Image URL (optional)</label>
+          <div class="image-input-row">
+            <input type="url" id="profileImage" placeholder="https://example.com/logo.png" oninput="updateProfilePreview('profileImage', 'profilePreview')">
+            <img id="profilePreview" class="image-preview" style="display: none;">
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Feed</button>
         </div>
       </form>
     </div>
@@ -515,7 +539,13 @@
         list.innerHTML = '<div class="empty">No feeds registered yet</div>';
         return;
       }
-      list.innerHTML = feeds.map(feed => {
+      const sorted = [...feeds].sort((a, b) => {
+        if (!a.lastSentAt && !b.lastSentAt) return 0;
+        if (!a.lastSentAt) return 1;
+        if (!b.lastSentAt) return -1;
+        return new Date(b.lastSentAt) - new Date(a.lastSentAt);
+      });
+      list.innerHTML = sorted.map(feed => {
         const isConnected = !!feed.webhookUrl;
         const isEnabled = feed.enabled !== false;
 
@@ -550,6 +580,18 @@
       return div.innerHTML;
     }
 
+    function updateProfilePreview(inputId, previewId) {
+      const input = document.getElementById(inputId);
+      const preview = document.getElementById(previewId);
+      if (input.value) {
+        preview.src = input.value;
+        preview.style.display = 'block';
+        preview.onerror = () => { preview.style.display = 'none'; };
+      } else {
+        preview.style.display = 'none';
+      }
+    }
+
     document.getElementById('addForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.target;
@@ -582,7 +624,7 @@
         }
         
         form.reset();
-        clearFormData();
+        closeAddModal();
         const msg = connectedChannel ? 'Feed added with Discord channel.' : 'Feed added. Connect Discord to start receiving notifications.';
         showToast(msg);
         await loadFeeds();
@@ -619,6 +661,19 @@
       }
     }
 
+    function openAddModal() {
+      document.getElementById('addForm').reset();
+      connectedChannel = null;
+      updateChannelStatus();
+      updateProfilePreview('profileImage', 'profilePreview');
+      document.getElementById('addModal').classList.add('show');
+    }
+
+    function closeAddModal() {
+      document.getElementById('addModal').classList.remove('show');
+      clearFormData();
+    }
+
     let editingFeedId = null;
 
     function openEditModal(id) {
@@ -630,6 +685,7 @@
       document.getElementById('editName').value = feed.name;
       document.getElementById('editUrl').value = feed.url;
       document.getElementById('editProfileImage').value = feed.profileImage || '';
+      updateProfilePreview('editProfileImage', 'editProfilePreview');
       
       const status = document.getElementById('editChannelStatus');
       const btn = document.getElementById('editConnectChannelBtn');

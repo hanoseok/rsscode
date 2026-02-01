@@ -4,7 +4,13 @@ import { feeds, posts, type Feed } from "../db/schema.js";
 import { eq, and } from "drizzle-orm";
 import { sendToDiscord } from "./discord.js";
 
-const parser = new Parser();
+const parser = new Parser({
+  headers: {
+    "User-Agent":
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    Accept: "application/atom+xml, application/rss+xml, application/xml, text/xml, */*",
+  },
+});
 
 interface RSSItem {
   guid?: string;

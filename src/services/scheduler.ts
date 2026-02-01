@@ -8,6 +8,14 @@ let scheduledTask: cron.ScheduledTask | null = null;
 let currentInterval: number = 10;
 
 async function getIntervalMinutes(): Promise<number> {
+  const envInterval = process.env.CHECK_INTERVAL_MINUTES;
+  if (envInterval) {
+    const parsed = parseInt(envInterval, 10);
+    if (!isNaN(parsed) && parsed >= 1 && parsed <= 1440) {
+      return parsed;
+    }
+  }
+
   try {
     const row = await db
       .select()

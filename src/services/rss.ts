@@ -31,14 +31,6 @@ export async function checkFeed(feed: Feed): Promise<number> {
     let newPostCount = 0;
     const latestTitle = (rssFeed.items[0] as RSSItem)?.title || null;
 
-    const existingPostCount = await db
-      .select()
-      .from(posts)
-      .where(eq(posts.feedId, feed.id))
-      .all();
-    
-    const isFirstCheck = existingPostCount.length === 0;
-
     for (const item of rssFeed.items as RSSItem[]) {
       const guid = item.guid || item.link;
       if (!guid || !item.title || !item.link) continue;
@@ -57,7 +49,7 @@ export async function checkFeed(feed: Feed): Promise<number> {
           ? new Date(item.pubDate)
           : undefined;
 
-      if (isFirstCheck) {
+      if (!feed.lastSentAt) {
         await db.insert(posts).values({
           feedId: feed.id,
           guid,
@@ -65,33 +57,45 @@ export async function checkFeed(feed: Feed): Promise<number> {
           link: item.link,
           publishedAt,
         });
-      } else {
-        const sent = await sendToDiscord({
-          webhookUrl: feed.webhookUrl,
-          feedName: feed.name,
-          profileImage: feed.profileImage,
+        continue;
+      }
+
+      if (publishedAt && publishedAt <= feed.lastSentAt) {
+        await db.insert(posts).values({
+          feedId: feed.id,
+          guid,
           title: item.title,
           link: item.link,
-          content: item.contentSnippet,
+          publishedAt,
+        });
+        continue;
+      }
+
+      const sent = await sendToDiscord({
+        webhookUrl: feed.webhookUrl,
+        feedName: feed.name,
+        profileImage: feed.profileImage,
+        title: item.title,
+        link: item.link,
+        content: item.contentSnippet,
+      });
+
+      if (sent) {
+        await db.insert(posts).values({
+          feedId: feed.id,
+          guid,
+          title: item.title,
+          link: item.link,
+          publishedAt,
         });
 
-        if (sent) {
-          await db.insert(posts).values({
-            feedId: feed.id,
-            guid,
-            title: item.title,
-            link: item.link,
-            publishedAt,
-          });
+        const now = new Date();
+        await db
+          .update(feeds)
+          .set({ lastSentAt: now, lastSentTitle: item.title })
+          .where(eq(feeds.id, feed.id));
 
-          const now = new Date();
-          await db
-            .update(feeds)
-            .set({ lastSentAt: now, lastSentTitle: item.title })
-            .where(eq(feeds.id, feed.id));
-
-          newPostCount++;
-        }
+        newPostCount++;
       }
     }
 

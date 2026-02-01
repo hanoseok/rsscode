@@ -249,6 +249,7 @@
             <label for="checkInterval">Check Interval (minutes)</label>
             <input type="number" id="checkInterval" min="1" max="1440" value="10" style="width: 120px;">
             <span class="help-text" style="display: inline; margin-left: 0.5rem;">1 ~ 1440 (24h)</span>
+            <div id="checkScheduleInfo" class="help-text" style="margin-top: 0.5rem;"></div>
           </div>
           <div class="actions">
             <button type="submit" class="btn btn-primary">Save Settings</button>
@@ -498,6 +499,7 @@
         
         showToast(`Settings saved (check every ${interval} min)`);
         await loadSettings();
+        updateCheckScheduleInfo();
       } catch (e) {
         showToast('Failed to save settings', 'error');
       } finally {
@@ -528,8 +530,40 @@
         const res = await fetch(`${API}/feeds`);
         feedsData = await res.json();
         renderFeeds(feedsData);
+        updateCheckScheduleInfo();
       } catch (e) {
         showToast('Failed to load feeds', 'error');
+      }
+    }
+
+    function updateCheckScheduleInfo() {
+      const info = document.getElementById('checkScheduleInfo');
+      const interval = parseInt(document.getElementById('checkInterval').value) || 10;
+      
+      let lastCheck = null;
+      for (const feed of feedsData) {
+        if (feed.lastCheckedAt) {
+          const t = new Date(feed.lastCheckedAt);
+          if (!lastCheck || t > lastCheck) lastCheck = t;
+        }
+      }
+      
+      if (lastCheck) {
+        const nextCheck = new Date(lastCheck.getTime() + interval * 60 * 1000);
+        const now = new Date();
+        const diff = nextCheck - now;
+        
+        let nextText;
+        if (diff <= 0) {
+          nextText = 'soon';
+        } else {
+          const mins = Math.ceil(diff / 60000);
+          nextText = mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins}m`;
+        }
+        
+        info.textContent = `Last: ${lastCheck.toLocaleString('ko-KR')} / Next: ${nextText}`;
+      } else {
+        info.textContent = 'No checks yet';
       }
     }
 
@@ -799,6 +833,8 @@
         showToast(e.message, 'error');
       }
     }
+
+    document.getElementById('checkInterval').addEventListener('input', updateCheckScheduleInfo);
 
     loadSettings().then(loadFeeds);
   </script>

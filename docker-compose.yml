@@ -1,16 +1,16 @@
 services:
   rsscode:
-    build: .
+    image: hanoseok/rsscode:latest
     container_name: rsscode
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "32770:3000"
     volumes:
       - rsscode_data:/data
     environment:
-      - CRON_SCHEDULE=${CRON_SCHEDULE:-*/10 * * * *}
-      - DATABASE_URL=/data/rsscode.db
-      - PORT=3000
+      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
+      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
+      - CHECK_INTERVAL_MINUTES=${CHECK_INTERVAL_MINUTES:-10}
 
 volumes:
   rsscode_data:

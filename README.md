@@ -50,7 +50,7 @@ services:
     container_name: rsscode
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "32770:3000"
     volumes:
       - rsscode_data:/data
     environment:

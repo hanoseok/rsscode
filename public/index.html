@@ -342,6 +342,8 @@
       border-radius: 8px;
       padding: 1rem;
       margin-bottom: 1rem;
+      max-height: 50vh;
+      overflow-y: auto;
     }
     .discord-message {
       display: flex;
@@ -935,14 +937,9 @@
         const hasTitle = fields.includes('title');
         const hasLink = fields.includes('link');
         
-        let tagsHtml = fields.map(field => 
+        const tagsHtml = fields.map(field => 
           `<span class="tag" draggable="true" data-value="{${field}}" data-target="${templateInputId}" title="${escapeHtml(sample[field] || '')}">{${field}}</span>`
         ).join('');
-        
-        if (hasTitle && hasLink) {
-          tagsHtml += `<span class="tag-divider"></span>`;
-          tagsHtml += `<span class="tag link-tag" draggable="true" data-value="[{title}]({link})" data-target="${templateInputId}" title="Clickable link: ${escapeHtml(sample.title || 'Title')}"><span class="tag-icon">🔗</span>[title](link)</span>`;
-        }
         
         container.innerHTML = tagsHtml;
         initDragAndDrop(container, templateInputId);
@@ -1140,11 +1137,19 @@
       const limitItem = document.getElementById('contextMenuLimit');
       
       if (chip && chip.classList.contains('field-chip')) {
-        const fieldMatch = chip.dataset.value.match(/^\{(\w+)(?::\d+)?\}$/);
+        const fieldMatch = chip.dataset.value.match(/^\{(\w+)(?::(\d+))?\}$/);
         if (fieldMatch) {
-          linkItem.innerHTML = `<span class="icon">🔗</span> "${fieldMatch[1]}" + Link`;
+          const fieldName = fieldMatch[1];
+          const hasLimit = !!fieldMatch[2];
+          linkItem.innerHTML = `<span class="icon">🔗</span> "${fieldName}" + Link`;
           linkItem.dataset.action = 'link';
-          limitItem.innerHTML = `<span class="icon">✂️</span> "${fieldMatch[1]}" 글자수 제한`;
+          if (hasLimit) {
+            limitItem.innerHTML = `<span class="icon">✂️</span> "${fieldName}" 글자수 제한 해제`;
+            limitItem.dataset.action = 'unlimit';
+          } else {
+            limitItem.innerHTML = `<span class="icon">✂️</span> "${fieldName}" 글자수 제한`;
+            limitItem.dataset.action = 'limit';
+          }
           limitItem.style.display = 'flex';
         }
       } else if (chip && chip.classList.contains('link-chip')) {
@@ -1221,34 +1226,49 @@
           }
         }
       } else if (action === 'limit') {
-        let fieldName = null;
+        const limitItem = document.getElementById('contextMenuLimit');
+        const limitAction = limitItem.dataset.action || 'limit';
         
-        if (activeContextMenuChip && activeContextMenuChip.classList.contains('field-chip')) {
-          const fieldMatch = activeContextMenuChip.dataset.value.match(/^\{(\w+)(?::\d+)?\}$/);
-          if (fieldMatch) {
-            fieldName = fieldMatch[1];
-          }
-        }
-        
-        if (!fieldName) {
-          fieldName = prompt('필드명을 입력하세요 (title, description, content 등):', 'description');
-          if (!fieldName) {
-            hideContextMenu();
-            return;
-          }
-        }
-        
-        const limit = prompt(`"${fieldName}" 최대 글자수:`, '100');
-        if (limit && !isNaN(parseInt(limit))) {
+        if (limitAction === 'unlimit') {
           if (activeContextMenuChip && activeContextMenuChip.classList.contains('field-chip')) {
-            activeContextMenuChip.dataset.value = `{${fieldName}:${parseInt(limit)}}`;
-            const limitMatch = activeContextMenuChip.dataset.value.match(/^\{(\w+):(\d+)\}$/);
-            if (limitMatch) {
-              activeContextMenuChip.innerHTML = `{${limitMatch[1]}}<span class="limit-badge">${limitMatch[2]}</span><span class="remove-chip" onclick="removeChip(this, '${activeContextMenuBuilder}')">×</span>`;
+            const fieldMatch = activeContextMenuChip.dataset.value.match(/^\{(\w+):\d+\}$/);
+            if (fieldMatch) {
+              const fieldName = fieldMatch[1];
+              activeContextMenuChip.dataset.value = `{${fieldName}}`;
+              activeContextMenuChip.innerHTML = `{${fieldName}}<span class="remove-chip" onclick="removeChip(this, '${activeContextMenuBuilder}')">×</span>`;
+              syncTextareaFromBuilder(activeContextMenuBuilder);
             }
-            syncTextareaFromBuilder(activeContextMenuBuilder);
-          } else {
-            addChipToBuilder(activeContextMenuBuilder, `{${fieldName}:${parseInt(limit)}}`);
+          }
+        } else {
+          let fieldName = null;
+          
+          if (activeContextMenuChip && activeContextMenuChip.classList.contains('field-chip')) {
+            const fieldMatch = activeContextMenuChip.dataset.value.match(/^\{(\w+)(?::\d+)?\}$/);
+            if (fieldMatch) {
+              fieldName = fieldMatch[1];
+            }
+          }
+          
+          if (!fieldName) {
+            fieldName = prompt('필드명을 입력하세요 (title, description, content 등):', 'description');
+            if (!fieldName) {
+              hideContextMenu();
+              return;
+            }
+          }
+          
+          const limit = prompt(`"${fieldName}" 최대 글자수:`, '100');
+          if (limit && !isNaN(parseInt(limit))) {
+            if (activeContextMenuChip && activeContextMenuChip.classList.contains('field-chip')) {
+              activeContextMenuChip.dataset.value = `{${fieldName}:${parseInt(limit)}}`;
+              const limitMatch = activeContextMenuChip.dataset.value.match(/^\{(\w+):(\d+)\}$/);
+              if (limitMatch) {
+                activeContextMenuChip.innerHTML = `{${limitMatch[1]}}<span class="limit-badge">${limitMatch[2]}</span><span class="remove-chip" onclick="removeChip(this, '${activeContextMenuBuilder}')">×</span>`;
+              }
+              syncTextareaFromBuilder(activeContextMenuBuilder);
+            } else {
+              addChipToBuilder(activeContextMenuBuilder, `{${fieldName}:${parseInt(limit)}}`);
+            }
           }
         }
       }

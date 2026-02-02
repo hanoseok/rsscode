@@ -42,7 +42,9 @@ function applyTemplate(template: string, item: RssItemData): string {
   });
 
   result = result.replace(/\{(\w+)\}/g, (_match, field) => {
-    return fieldMap[field] || "";
+    const value = fieldMap[field] || "";
+    if (field === "link") return value;
+    return truncate(value, 500);
   });
 
   return result.trim();

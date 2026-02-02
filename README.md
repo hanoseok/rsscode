@@ -8,7 +8,8 @@ RSS 피드를 모니터링하여 새 글을 Discord 채널로 자동 전송하�
 - **피드별 Discord 채널**: 각 피드마다 다른 Discord 채널로 알림 전송 가능
 - **Discord OAuth2 연동**: Webhook URL 직접 입력 없이 OAuth로 간편 연결
 - **피드 활성화/비활성화**: 토글로 피드별 알림 on/off
-- **테스트 전송**: 최신 RSS 항목을 Discord로 테스트 전송
+- **테스트 전송**: 미리보기 후 Discord로 테스트 전송
+- **메시지 템플릿**: 피드별 메시지 포맷 커스터마이징 (드래그 앤 드롭 에디터)
 - **자동 스케줄링**: 설정 가능한 주기로 새 글 확인 (기본 10분)
 - **스마트 알림**: 첫 연결 시 기존 글은 저장만, 새 글부터 알림
 - **웹 UI**: 다크 테마의 관리자 인터페이스
@@ -77,15 +78,40 @@ docker-compose up -d
 6. **Test** 버튼으로 테스트 메시지 전송 (첫 알림 활성화)
 7. 토글로 피드 활성화
 
-## Discord 메시지 포맷
+## 메시지 템플릿
+
+피드별로 Discord 메시지 포맷을 커스터마이징할 수 있습니다.
+
+### 템플릿 문법
+
+| 문법 | 설명 | 예시 |
+|------|------|------|
+| `{field}` | 필드 값 출력 | `{title}` |
+| `{field:N}` | N자로 잘라서 출력 | `{description:100}` |
+| `[{field}]({link})` | 클릭 가능한 링크 | `[{title}]({link})` |
+
+### 사용 가능한 필드
+
+`title`, `link`, `description`, `content`, `pubDate`, `author`, `categories`
+
+### 기본 템플릿
 
 ```
-┌─────────────────────────────────────┐
-│ [피드 이름]                          │
-│                                     │
-│ 글 제목 (클릭 시 링크 이동)            │
-│ 본문 미리보기 (최대 200자)...          │
-└─────────────────────────────────────┘
+{title}
+{link}
+```
+
+### 예시
+
+```
+[{title}]({link})
+{description:200}
+```
+
+결과:
+```
+스마트스토어센터 Oracle에서 MySQL로...  ← 클릭 가능
+본문 미리보기 200자까지...
 ```
 
 ## 알림 동작 방식
@@ -181,6 +207,8 @@ npm run build
 | POST | `/api/feeds` | 피드 등록 |
 | PUT | `/api/feeds/:id` | 피드 수정 |
 | DELETE | `/api/feeds/:id` | 피드 삭제 |
+| POST | `/api/feeds/preview-rss` | RSS 필드 미리보기 |
+| GET | `/api/feeds/:id/preview` | 테스트 메시지 미리보기 |
 | POST | `/api/feeds/:id/test` | 테스트 전송 |
 | GET | `/api/discord/authorize` | Discord OAuth 시작 |
 | GET | `/api/discord/channels` | 연결된 채널 목록 |

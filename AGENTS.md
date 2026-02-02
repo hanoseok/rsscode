@@ -4,6 +4,12 @@
 
 RSS to Discord notification service built with TypeScript, Express.js, and SQLite.
 
+### Key Features
+- Multi-feed management with per-feed Discord channels
+- Customizable message templates with drag-and-drop editor
+- Discord OAuth2 integration
+- Smart notifications (skip existing posts on first check)
+
 ## Tech Stack
 
 - **Runtime**: Node.js 20+ (ESM modules)

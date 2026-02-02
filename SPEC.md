@@ -97,6 +97,7 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
 | `last_checked_title` | TEXT | 마지막 체크한 글 제목 |
 | `last_sent_at` | INTEGER | 마지막 전송 시간 |
 | `last_sent_title` | TEXT | 마지막 전송한 글 제목 |
+| `message_template` | TEXT | 메시지 템플릿 (기본: `{title}\n{link}`) |
 
 ### 4.2 posts 테이블
 | 컬럼 | 타입 | 설명 |
@@ -194,6 +195,42 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
 피드 삭제
 
 **Response**: `204 No Content`
+
+#### `POST /api/feeds/preview-rss`
+RSS 필드 미리보기 (템플릿 빌더용)
+
+**Request Body**:
+```json
+{
+  "url": "https://example.com/feed.xml"
+}
+```
+
+**Response**: `200 OK`
+```json
+{
+  "fields": ["title", "link", "description", "content", "pubDate", "author", "categories"],
+  "sample": {
+    "title": "Article Title",
+    "link": "https://example.com/article",
+    "description": "Article description..."
+  }
+}
+```
+
+#### `GET /api/feeds/:id/preview`
+테스트 메시지 미리보기
+
+**Response**: `200 OK`
+```json
+{
+  "feedName": "TechCrunch",
+  "profileImage": "https://example.com/logo.png",
+  "webhookName": "RSS to Discord",
+  "content": "Article Title\nhttps://example.com/article",
+  "rssItem": { ... }
+}
+```
 
 #### `POST /api/feeds/:id/test`
 테스트 메시지 전송 (lastCheckedAt/lastSentAt 업데이트)
@@ -338,20 +375,37 @@ Discord OAuth 콜백 (내부 사용)
 6. 서버 → Webhook URL, Name을 DB에 저장
 ```
 
-### 7.2 Webhook 메시지 포맷
+### 7.2 메시지 템플릿
+
+#### 템플릿 문법
+| 문법 | 설명 | 예시 |
+|------|------|------|
+| `{field}` | 필드 값 출력 | `{title}` → "Article Title" |
+| `{field:N}` | N자로 잘라서 출력 | `{description:100}` → "First 100 chars..." |
+| `[{field}]({link})` | 마크다운 링크 | `[{title}]({link})` → "[Title](url)" |
+
+#### 사용 가능한 필드
+- `title` - 글 제목
+- `link` - 글 URL
+- `description` - 본문 미리보기
+- `content` - 전체 본문
+- `pubDate` - 발행일
+- `author` - 작성자
+- `categories` - 카테고리
+
+#### 기본 템플릿
+```
+{title}
+{link}
+```
+
+### 7.3 Webhook 메시지 포맷
 
 ```json
 {
   "username": "피드 이름",
   "avatar_url": "프로필 이미지 URL",
-  "embeds": [
-    {
-      "title": "글 제목",
-      "url": "글 URL",
-      "description": "본문 미리보기 (최대 200자)...",
-      "color": 5793266
-    }
-  ]
+  "content": "템플릿이 적용된 메시지 내용"
 }
 ```
 
@@ -398,6 +452,11 @@ Discord OAuth 콜백 (내부 사용)
 - Discord Channel 연결 (맨 위)
 - Feed Name, RSS URL, Profile Image URL 입력
 - Profile Image 미리보기
+- **Message Template Builder**:
+  - Fetch 버튼으로 RSS 필드 로드
+  - 칩 기반 비주얼 에디터
+  - 드래그 앤 드롭으로 순서 변경
+  - 우클릭 메뉴로 링크 추가/글자수 제한 설정
 
 ### 9.3 Registered Feeds
 - 스크롤 가능 (최대 60vh)
@@ -493,6 +552,17 @@ rsscode/
 | v0.4.0 | 2024-02-01 | Form persistence during OAuth, simplified channel UI |
 | v0.5.0 | 2024-02-01 | Discord message format (title+link, 200 char content) |
 | v0.6.0 | 2024-02-02 | Smart notifications, UI improvements, webhook name display |
+| v0.7.0 | 2024-02-02 | Message template builder, test preview modal |
+
+### v0.7.0 상세 변경사항
+- **메시지 템플릿 빌더**: 피드별 Discord 메시지 포맷 커스터마이징
+  - 칩 기반 비주얼 에디터 (드래그 앤 드롭 지원)
+  - 템플릿 문법: `{field}`, `{field:N}` (글자수 제한), `[{field}]({link})` (링크)
+  - 사용 가능한 필드: title, link, description, content, pubDate, author, categories
+  - 기본 글자수 제한: 500자 (link 제외)
+- **테스트 미리보기 모달**: Discord 스타일로 메시지 미리보기 후 전송
+- **새 API**: `POST /api/feeds/preview-rss`, `GET /api/feeds/:id/preview`
+- 우클릭 컨텍스트 메뉴: 링크 추가/제거, 글자수 제한 설정/해제
 
 ### v0.6.0 상세 변경사항
 - 첫 체크 시 기존 글 저장만 (알림 안함)

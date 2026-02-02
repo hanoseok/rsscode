@@ -7,8 +7,10 @@ describe("Discord Service", () => {
       const result = await sendToDiscord({
         webhookUrl: "not-a-valid-url",
         feedName: "Test Feed",
-        title: "Test Title",
-        link: "https://example.com",
+        rssItem: {
+          title: "Test Title",
+          link: "https://example.com",
+        },
       });
       
       expect(result).toBe(false);
@@ -18,8 +20,10 @@ describe("Discord Service", () => {
       const result = await sendToDiscord({
         webhookUrl: "https://httpstat.us/500",
         feedName: "Test Feed",
-        title: "Test Title",
-        link: "https://example.com",
+        rssItem: {
+          title: "Test Title",
+          link: "https://example.com",
+        },
       });
       
       expect(result).toBe(false);

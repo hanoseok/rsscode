@@ -2,7 +2,7 @@ import Parser from "rss-parser";
 import { db } from "../db/index.js";
 import { feeds, posts, type Feed } from "../db/schema.js";
 import { eq, and } from "drizzle-orm";
-import { sendToDiscord } from "./discord.js";
+import { sendToDiscord, type RssItemData } from "./discord.js";
 
 const parser = new Parser({
   headers: {
@@ -19,6 +19,9 @@ interface RSSItem {
   pubDate?: string;
   isoDate?: string;
   contentSnippet?: string;
+  content?: string;
+  creator?: string;
+  categories?: string[];
 }
 
 export async function checkFeed(feed: Feed): Promise<number> {
@@ -71,13 +74,23 @@ export async function checkFeed(feed: Feed): Promise<number> {
         continue;
       }
 
+      const rssItem: RssItemData = {
+        title: item.title,
+        link: item.link,
+        description: item.contentSnippet,
+        content: item.content,
+        pubDate: item.pubDate,
+        isoDate: item.isoDate,
+        author: item.creator,
+        categories: item.categories?.join(", "),
+      };
+
       const sent = await sendToDiscord({
         webhookUrl: feed.webhookUrl,
         feedName: feed.name,
         profileImage: feed.profileImage,
-        title: item.title,
-        link: item.link,
-        content: item.contentSnippet,
+        messageTemplate: feed.messageTemplate,
+        rssItem,
       });
 
       if (sent) {

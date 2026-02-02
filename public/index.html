@@ -173,6 +173,225 @@
       background: #334155;
       flex-shrink: 0;
     }
+    .url-row { display: flex; gap: 0.5rem; align-items: center; }
+    .url-row input { flex: 1; }
+    .tag-container { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; align-items: center; }
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.35rem 0.75rem;
+      background: #334155;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      cursor: grab;
+      transition: all 0.2s;
+      font-family: monospace;
+      user-select: none;
+    }
+    .tag:hover { background: #475569; transform: translateY(-1px); }
+    .tag:active { cursor: grabbing; }
+    .tag.dragging { opacity: 0.5; }
+    .tag.link-tag { background: #1e40af; color: #93c5fd; }
+    .tag.link-tag:hover { background: #1d4ed8; }
+    .tag-icon { font-size: 0.7rem; }
+    .tag-divider { 
+      width: 1px; 
+      height: 20px; 
+      background: #475569; 
+      margin: 0 0.25rem;
+    }
+    textarea {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 0.9rem;
+      font-family: monospace;
+      resize: vertical;
+      min-height: 60px;
+      transition: border-color 0.2s, background 0.2s;
+      display: none;
+    }
+    textarea:focus { outline: none; border-color: #6366f1; }
+    .template-builder {
+      width: 100%;
+      min-height: 60px;
+      padding: 0.5rem;
+      background: #0f172a;
+      border: 2px solid #334155;
+      border-radius: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      align-content: flex-start;
+      gap: 4px;
+      cursor: text;
+      transition: border-color 0.2s;
+    }
+    .template-builder:focus-within, .template-builder:focus { border-color: #6366f1; outline: none; }
+    .template-builder.drag-over { border-color: #6366f1; background: #1e293b; }
+    .template-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      font-family: monospace;
+      position: relative;
+      cursor: grab;
+      user-select: none;
+      -webkit-user-drag: element;
+    }
+    .template-chip:active { cursor: grabbing; }
+    .template-chip * { pointer-events: none; }
+    .template-chip .remove-chip { pointer-events: auto; }
+    .template-chip.field-chip {
+      background: #6366f1;
+      color: white;
+    }
+    .template-chip .limit-badge {
+      background: rgba(0,0,0,0.3);
+      padding: 0 0.3rem;
+      border-radius: 3px;
+      font-size: 0.65rem;
+      margin-left: 0.25rem;
+    }
+    .template-chip.link-chip {
+      background: #1e40af;
+      color: #93c5fd;
+    }
+    .template-chip.text-chip {
+      background: transparent;
+      color: #94a3b8;
+      padding: 0.25rem 0.1rem;
+    }
+    .template-chip.newline-chip {
+      background: #334155;
+      color: #64748b;
+      font-size: 0.7rem;
+      padding: 0.15rem 0.4rem;
+    }
+    .template-linebreak {
+      flex-basis: 100%;
+      height: 0;
+    }
+    .template-chip .remove-chip {
+      margin-left: 4px;
+      cursor: pointer;
+      opacity: 0.7;
+      font-size: 0.7rem;
+      pointer-events: auto;
+    }
+    .template-chip .remove-chip:hover { opacity: 1; }
+    .template-chip.dragging { opacity: 0.4; cursor: grabbing; }
+    .drop-indicator {
+      width: 2px;
+      height: 24px;
+      background: #6366f1;
+      border-radius: 1px;
+      animation: blink 1s infinite;
+      flex-shrink: 0;
+    }
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0.3; }
+    }
+    .template-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      align-items: center;
+    }
+    .template-actions button {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+    }
+    .context-menu {
+      position: fixed;
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 8px;
+      padding: 0.5rem 0;
+      min-width: 180px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 2000;
+      display: none;
+    }
+    .context-menu.show { display: block; }
+    .context-menu-item {
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #e2e8f0;
+    }
+    .context-menu-item:hover { background: #334155; }
+    .context-menu-item .icon { font-size: 0.9rem; }
+    .context-menu-divider {
+      height: 1px;
+      background: #475569;
+      margin: 0.25rem 0;
+    }
+    .discord-preview {
+      background: #313338;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    .discord-message {
+      display: flex;
+      gap: 1rem;
+    }
+    .discord-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: #5865f2;
+      object-fit: cover;
+    }
+    .discord-content {
+      flex: 1;
+      min-width: 0;
+    }
+    .discord-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-bottom: 0.25rem;
+    }
+    .discord-username {
+      font-weight: 600;
+      color: #f2f3f5;
+    }
+    .discord-timestamp {
+      font-size: 0.75rem;
+      color: #949ba4;
+    }
+    .discord-text {
+      color: #dbdee1;
+      font-size: 0.95rem;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .discord-text a {
+      color: #00a8fc;
+      text-decoration: none;
+    }
+    .discord-text a:hover {
+      text-decoration: underline;
+    }
+    .preview-channel {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 1rem;
+    }
     .channel-info {
       flex: 1;
       padding: 0.75rem 1rem;
@@ -290,7 +509,21 @@
         </div>
         <div class="form-group">
           <label for="editUrl">RSS URL</label>
-          <input type="url" id="editUrl" required>
+          <div class="url-row">
+            <input type="url" id="editUrl" required>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="fetchRssFields('editUrl', 'editRssFields', 'editMessageTemplate')">Fetch</button>
+          </div>
+          <div id="editRssFields" class="tag-container" style="display: none;"></div>
+        </div>
+        <div class="form-group">
+          <label>Message Template</label>
+          <div id="editTemplateBuilder" class="template-builder"></div>
+          <textarea id="editMessageTemplate"></textarea>
+          <div class="template-actions">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addNewlineChip('editTemplateBuilder')">↵ Newline</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="clearTemplate('editTemplateBuilder')">Clear</button>
+            <span class="help-text" style="margin-left: auto;">Drag tags here or click to add</span>
+          </div>
         </div>
         <div class="form-group">
           <label for="editProfileImage">Profile Image URL</label>
@@ -324,7 +557,22 @@
         </div>
         <div class="form-group">
           <label for="url">RSS URL</label>
-          <input type="url" id="url" placeholder="https://example.com/feed.xml" required>
+          <div class="url-row">
+            <input type="url" id="url" placeholder="https://example.com/feed.xml" required>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="fetchRssFields('url', 'rssFields', 'messageTemplate')">Fetch</button>
+          </div>
+          <div id="rssFields" class="tag-container" style="display: none;"></div>
+        </div>
+        <div class="form-group">
+          <label>Message Template</label>
+          <div id="templateBuilder" class="template-builder"></div>
+          <textarea id="messageTemplate">{title}
+{link}</textarea>
+          <div class="template-actions">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="addNewlineChip('templateBuilder')">↵ Newline</button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="clearTemplate('templateBuilder')">Clear</button>
+            <span class="help-text" style="margin-left: auto;">Drag tags here or click to add</span>
+          </div>
         </div>
         <div class="form-group">
           <label for="profileImage">Profile Image URL (optional)</label>
@@ -338,6 +586,39 @@
           <button type="submit" class="btn btn-primary">Add Feed</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="previewModal">
+    <div class="modal" style="max-width: 500px;">
+      <h3>Message Preview</h3>
+      <div class="discord-preview">
+        <div class="discord-message">
+          <img id="previewAvatar" class="discord-avatar" src="" alt="">
+          <div class="discord-content">
+            <div class="discord-header">
+              <span id="previewUsername" class="discord-username"></span>
+              <span class="discord-timestamp">Today</span>
+            </div>
+            <div id="previewContent" class="discord-text"></div>
+          </div>
+        </div>
+      </div>
+      <div id="previewChannel" class="preview-channel"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="closePreviewModal()">Cancel</button>
+        <button type="button" class="btn btn-primary" id="sendTestBtn">Send to Discord</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="contextMenu" class="context-menu">
+    <div class="context-menu-item" id="contextMenuLink" onclick="contextMenuAction('link')">
+      <span class="icon">🔗</span> + Link
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item" id="contextMenuLimit" onclick="contextMenuAction('limit')">
+      <span class="icon">✂️</span> 글자수 제한
     </div>
   </div>
 
@@ -626,6 +907,557 @@
       }
     }
 
+    async function fetchRssFields(urlInputId, tagsContainerId, templateInputId) {
+      const url = document.getElementById(urlInputId).value;
+      if (!url) {
+        showToast('Enter RSS URL first', 'error');
+        return;
+      }
+
+      const container = document.getElementById(tagsContainerId);
+      container.innerHTML = '<span style="color: #64748b;">Loading...</span>';
+      container.style.display = 'flex';
+
+      try {
+        const res = await fetch(`${API}/feeds/preview-rss`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url })
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to fetch RSS');
+        }
+
+        const { fields, sample } = await res.json();
+        
+        const hasTitle = fields.includes('title');
+        const hasLink = fields.includes('link');
+        
+        let tagsHtml = fields.map(field => 
+          `<span class="tag" draggable="true" data-value="{${field}}" data-target="${templateInputId}" title="${escapeHtml(sample[field] || '')}">{${field}}</span>`
+        ).join('');
+        
+        if (hasTitle && hasLink) {
+          tagsHtml += `<span class="tag-divider"></span>`;
+          tagsHtml += `<span class="tag link-tag" draggable="true" data-value="[{title}]({link})" data-target="${templateInputId}" title="Clickable link: ${escapeHtml(sample.title || 'Title')}"><span class="tag-icon">🔗</span>[title](link)</span>`;
+        }
+        
+        container.innerHTML = tagsHtml;
+        initDragAndDrop(container, templateInputId);
+
+        showToast(`Found ${fields.length} fields`);
+      } catch (e) {
+        container.innerHTML = `<span style="color: #f87171;">${escapeHtml(e.message)}</span>`;
+        showToast(e.message, 'error');
+      }
+    }
+
+    const templateBuilderMap = {
+      'messageTemplate': 'templateBuilder',
+      'editMessageTemplate': 'editTemplateBuilder'
+    };
+
+    function getBuilderIdFromTextarea(textareaId) {
+      return templateBuilderMap[textareaId];
+    }
+
+    function parseTemplateToChips(template) {
+      const chips = [];
+      const regex = /(\{[^}]+\}|\[[^\]]+\]\([^)]+\)|\n)/g;
+      let lastIndex = 0;
+      let match;
+      
+      while ((match = regex.exec(template)) !== null) {
+        if (match.index > lastIndex) {
+          const text = template.substring(lastIndex, match.index);
+          if (text) chips.push({ type: 'text', value: text });
+        }
+        
+        const val = match[0];
+        if (val === '\n') {
+          chips.push({ type: 'newline', value: '\n' });
+        } else if (val.startsWith('[') && val.includes('](')) {
+          chips.push({ type: 'link', value: val });
+        } else {
+          chips.push({ type: 'field', value: val });
+        }
+        lastIndex = regex.lastIndex;
+      }
+      
+      if (lastIndex < template.length) {
+        const text = template.substring(lastIndex);
+        if (text) chips.push({ type: 'text', value: text });
+      }
+      
+      return chips;
+    }
+
+    function chipsToTemplate(builderId) {
+      const builder = document.getElementById(builderId);
+      let template = '';
+      builder.querySelectorAll('.template-chip').forEach(chip => {
+        template += chip.dataset.value;
+      });
+      return template;
+    }
+
+    function syncTextareaFromBuilder(builderId) {
+      const textareaId = Object.keys(templateBuilderMap).find(k => templateBuilderMap[k] === builderId);
+      if (textareaId) {
+        document.getElementById(textareaId).value = chipsToTemplate(builderId);
+      }
+    }
+
+    function renderChip(chip, builderId) {
+      const span = document.createElement('span');
+      span.className = 'template-chip';
+      span.dataset.value = chip.value;
+      span.draggable = true;
+      
+      if (chip.type === 'field') {
+        span.classList.add('field-chip');
+        const limitMatch = chip.value.match(/^\{(\w+):(\d+)\}$/);
+        if (limitMatch) {
+          span.innerHTML = `{${limitMatch[1]}}<span class="limit-badge">${limitMatch[2]}</span><span class="remove-chip" onclick="removeChip(this, '${builderId}')">×</span>`;
+        } else {
+          span.innerHTML = `${escapeHtml(chip.value)}<span class="remove-chip" onclick="removeChip(this, '${builderId}')">×</span>`;
+        }
+      } else if (chip.type === 'link') {
+        span.classList.add('link-chip');
+        span.innerHTML = `🔗 ${escapeHtml(chip.value)}<span class="remove-chip" onclick="removeChip(this, '${builderId}')">×</span>`;
+      } else if (chip.type === 'newline') {
+        span.classList.add('newline-chip');
+        span.innerHTML = `↵<span class="remove-chip" onclick="removeChip(this, '${builderId}')">×</span>`;
+      } else {
+        span.classList.add('text-chip');
+        span.innerHTML = `${escapeHtml(chip.value)}<span class="remove-chip" onclick="removeChip(this, '${builderId}')">×</span>`;
+      }
+      
+      return span;
+    }
+
+    function renderTemplateBuilder(builderId, template) {
+      const builder = document.getElementById(builderId);
+      builder.innerHTML = '';
+      builder.tabIndex = 0;
+      
+      const chips = parseTemplateToChips(template);
+      chips.forEach(chip => {
+        const chipEl = renderChip(chip, builderId);
+        builder.appendChild(chipEl);
+        if (chip.type === 'newline') {
+          const linebreak = document.createElement('div');
+          linebreak.className = 'template-linebreak';
+          builder.appendChild(linebreak);
+        }
+      });
+      
+      builder.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          addNewlineChip(builderId);
+        }
+      };
+      
+      builder.onclick = (e) => {
+        if (e.target === builder) {
+          builder.focus();
+        }
+      };
+      
+      builder.oncontextmenu = (e) => {
+        showContextMenu(e, builderId);
+      };
+      
+      initBuilderDragDrop(builderId);
+    }
+
+    function removeChip(element, builderId) {
+      const chip = element.closest('.template-chip');
+      if (chip) {
+        const nextEl = chip.nextElementSibling;
+        if (chip.classList.contains('newline-chip') && nextEl && nextEl.classList.contains('template-linebreak')) {
+          nextEl.remove();
+        }
+        chip.remove();
+        syncTextareaFromBuilder(builderId);
+      }
+    }
+
+    function addChipToBuilder(builderId, value, insertIndex = -1) {
+      const builder = document.getElementById(builderId);
+      let type = 'field';
+      if (value === '\n') type = 'newline';
+      else if (value.startsWith('[') && value.includes('](')) type = 'link';
+      else if (!value.startsWith('{')) type = 'text';
+      
+      const chip = renderChip({ type, value }, builderId);
+      
+      const chips = builder.querySelectorAll('.template-chip');
+      if (insertIndex >= 0 && insertIndex < chips.length) {
+        builder.insertBefore(chip, chips[insertIndex]);
+      } else {
+        builder.appendChild(chip);
+      }
+      
+      if (type === 'newline') {
+        const linebreak = document.createElement('div');
+        linebreak.className = 'template-linebreak';
+        if (chip.nextSibling) {
+          builder.insertBefore(linebreak, chip.nextSibling);
+        } else {
+          builder.appendChild(linebreak);
+        }
+      }
+      
+      initChipDrag(chip, builderId);
+      syncTextareaFromBuilder(builderId);
+    }
+
+    function addNewlineChip(builderId) {
+      addChipToBuilder(builderId, '\n');
+    }
+
+    function clearTemplate(builderId) {
+      document.getElementById(builderId).innerHTML = '';
+      syncTextareaFromBuilder(builderId);
+    }
+
+    let activeContextMenuBuilder = null;
+    let activeContextMenuChip = null;
+    const contextMenu = document.getElementById('contextMenu');
+
+    function showContextMenu(e, builderId) {
+      e.preventDefault();
+      activeContextMenuBuilder = builderId;
+      
+      const chip = e.target.closest('.template-chip');
+      activeContextMenuChip = chip;
+      
+      const linkItem = document.getElementById('contextMenuLink');
+      const limitItem = document.getElementById('contextMenuLimit');
+      
+      if (chip && chip.classList.contains('field-chip')) {
+        const fieldMatch = chip.dataset.value.match(/^\{(\w+)(?::\d+)?\}$/);
+        if (fieldMatch) {
+          linkItem.innerHTML = `<span class="icon">🔗</span> "${fieldMatch[1]}" + Link`;
+          linkItem.dataset.action = 'link';
+          limitItem.innerHTML = `<span class="icon">✂️</span> "${fieldMatch[1]}" 글자수 제한`;
+          limitItem.style.display = 'flex';
+        }
+      } else if (chip && chip.classList.contains('link-chip')) {
+        const linkMatch = chip.dataset.value.match(/^\[\{(\w+)\}\]\(\{link\}\)$/);
+        if (linkMatch) {
+          linkItem.innerHTML = `<span class="icon">🔗</span> "${linkMatch[1]}" - Link 제거`;
+          linkItem.dataset.action = 'unlink';
+          limitItem.style.display = 'none';
+        }
+      } else {
+        linkItem.innerHTML = `<span class="icon">🔗</span> + Link (필드 선택)`;
+        linkItem.dataset.action = 'link';
+        limitItem.innerHTML = `<span class="icon">✂️</span> 글자수 제한 (필드 선택)`;
+        limitItem.style.display = 'flex';
+      }
+      
+      contextMenu.style.left = e.clientX + 'px';
+      contextMenu.style.top = e.clientY + 'px';
+      contextMenu.classList.add('show');
+    }
+
+    function hideContextMenu() {
+      contextMenu.classList.remove('show');
+      activeContextMenuBuilder = null;
+      activeContextMenuChip = null;
+    }
+
+    function contextMenuAction(action) {
+      if (!activeContextMenuBuilder) return;
+      
+      const linkItem = document.getElementById('contextMenuLink');
+      const actualAction = action === 'link' ? (linkItem.dataset.action || 'link') : action;
+      
+      if (actualAction === 'link') {
+        let fieldName = null;
+        
+        if (activeContextMenuChip && activeContextMenuChip.classList.contains('field-chip')) {
+          const fieldMatch = activeContextMenuChip.dataset.value.match(/^\{(\w+)(?::\d+)?\}$/);
+          if (fieldMatch) {
+            fieldName = fieldMatch[1];
+          }
+        }
+        
+        if (!fieldName) {
+          fieldName = prompt('링크로 만들 필드명 (title, description 등):', 'title');
+          if (!fieldName) {
+            hideContextMenu();
+            return;
+          }
+        }
+        
+        const linkValue = `[{${fieldName}}]({link})`;
+        
+        if (activeContextMenuChip && activeContextMenuChip.classList.contains('field-chip')) {
+          activeContextMenuChip.dataset.value = linkValue;
+          activeContextMenuChip.classList.remove('field-chip');
+          activeContextMenuChip.classList.add('link-chip');
+          activeContextMenuChip.innerHTML = `🔗 ${escapeHtml(linkValue)}<span class="remove-chip" onclick="removeChip(this, '${activeContextMenuBuilder}')">×</span>`;
+          syncTextareaFromBuilder(activeContextMenuBuilder);
+        } else {
+          addChipToBuilder(activeContextMenuBuilder, linkValue);
+        }
+      } else if (actualAction === 'unlink') {
+        if (activeContextMenuChip && activeContextMenuChip.classList.contains('link-chip')) {
+          const linkMatch = activeContextMenuChip.dataset.value.match(/^\[\{(\w+)\}\]\(\{link\}\)$/);
+          if (linkMatch) {
+            const fieldName = linkMatch[1];
+            const fieldValue = `{${fieldName}}`;
+            activeContextMenuChip.dataset.value = fieldValue;
+            activeContextMenuChip.classList.remove('link-chip');
+            activeContextMenuChip.classList.add('field-chip');
+            activeContextMenuChip.innerHTML = `${escapeHtml(fieldValue)}<span class="remove-chip" onclick="removeChip(this, '${activeContextMenuBuilder}')">×</span>`;
+            syncTextareaFromBuilder(activeContextMenuBuilder);
+          }
+        }
+      } else if (action === 'limit') {
+        let fieldName = null;
+        
+        if (activeContextMenuChip && activeContextMenuChip.classList.contains('field-chip')) {
+          const fieldMatch = activeContextMenuChip.dataset.value.match(/^\{(\w+)(?::\d+)?\}$/);
+          if (fieldMatch) {
+            fieldName = fieldMatch[1];
+          }
+        }
+        
+        if (!fieldName) {
+          fieldName = prompt('필드명을 입력하세요 (title, description, content 등):', 'description');
+          if (!fieldName) {
+            hideContextMenu();
+            return;
+          }
+        }
+        
+        const limit = prompt(`"${fieldName}" 최대 글자수:`, '100');
+        if (limit && !isNaN(parseInt(limit))) {
+          if (activeContextMenuChip && activeContextMenuChip.classList.contains('field-chip')) {
+            activeContextMenuChip.dataset.value = `{${fieldName}:${parseInt(limit)}}`;
+            const limitMatch = activeContextMenuChip.dataset.value.match(/^\{(\w+):(\d+)\}$/);
+            if (limitMatch) {
+              activeContextMenuChip.innerHTML = `{${limitMatch[1]}}<span class="limit-badge">${limitMatch[2]}</span><span class="remove-chip" onclick="removeChip(this, '${activeContextMenuBuilder}')">×</span>`;
+            }
+            syncTextareaFromBuilder(activeContextMenuBuilder);
+          } else {
+            addChipToBuilder(activeContextMenuBuilder, `{${fieldName}:${parseInt(limit)}}`);
+          }
+        }
+      }
+      
+      hideContextMenu();
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!contextMenu.contains(e.target)) {
+        hideContextMenu();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        hideContextMenu();
+      }
+    });
+
+    let dropIndicator = null;
+    let currentDropIndex = -1;
+    const initializedBuilders = new Set();
+
+    function initBuilderDropZone(builderId) {
+      if (initializedBuilders.has(builderId)) return;
+      initializedBuilders.add(builderId);
+      
+      const builder = document.getElementById(builderId);
+      
+      builder.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        builder.classList.add('drag-over');
+        updateDropIndicator(builder, e.clientX);
+      });
+      
+      builder.addEventListener('dragleave', (e) => {
+        if (!builder.contains(e.relatedTarget)) {
+          builder.classList.remove('drag-over');
+          removeDropIndicator();
+        }
+      });
+      
+      builder.addEventListener('drop', (e) => {
+        e.preventDefault();
+        builder.classList.remove('drag-over');
+        
+        const value = e.dataTransfer.getData('text/plain');
+        const fromIndex = parseInt(e.dataTransfer.getData('fromIndex') || '-1');
+        
+        removeDropIndicator();
+        
+        if (fromIndex >= 0) {
+          const chips = Array.from(builder.querySelectorAll('.template-chip'));
+          const chip = chips[fromIndex];
+          if (chip && currentDropIndex !== fromIndex) {
+            const isNewline = chip.classList.contains('newline-chip');
+            const linebreak = isNewline ? chip.nextElementSibling : null;
+            
+            if (linebreak && linebreak.classList.contains('template-linebreak')) {
+              linebreak.remove();
+            }
+            chip.remove();
+            
+            const newChips = builder.querySelectorAll('.template-chip');
+            const adjustedIndex = currentDropIndex;
+            if (adjustedIndex >= 0 && adjustedIndex < newChips.length) {
+              const targetChip = newChips[adjustedIndex];
+              if (adjustedIndex > 0) {
+                const prevChip = newChips[adjustedIndex - 1];
+                if (prevChip.classList.contains('newline-chip')) {
+                  const prevLinebreak = prevChip.nextElementSibling;
+                  if (prevLinebreak && prevLinebreak.classList.contains('template-linebreak')) {
+                    builder.insertBefore(chip, prevLinebreak.nextSibling);
+                  } else {
+                    builder.insertBefore(chip, targetChip);
+                  }
+                } else {
+                  builder.insertBefore(chip, targetChip);
+                }
+              } else {
+                builder.insertBefore(chip, targetChip);
+              }
+            } else {
+              // Appending at end - check if last chip is newline
+              if (newChips.length > 0) {
+                const lastChip = newChips[newChips.length - 1];
+                if (lastChip.classList.contains('newline-chip')) {
+                  const lastLinebreak = lastChip.nextElementSibling;
+                  if (lastLinebreak && lastLinebreak.classList.contains('template-linebreak')) {
+                    builder.insertBefore(chip, lastLinebreak.nextSibling);
+                  } else {
+                    builder.appendChild(chip);
+                  }
+                } else {
+                  builder.appendChild(chip);
+                }
+              } else {
+                builder.appendChild(chip);
+              }
+            }
+            
+            if (isNewline) {
+              const newLinebreak = document.createElement('div');
+              newLinebreak.className = 'template-linebreak';
+              if (chip.nextSibling) {
+                builder.insertBefore(newLinebreak, chip.nextSibling);
+              } else {
+                builder.appendChild(newLinebreak);
+              }
+            }
+            
+            syncTextareaFromBuilder(builderId);
+          }
+        } else if (value) {
+          addChipToBuilder(builderId, value, currentDropIndex);
+        }
+        
+        currentDropIndex = -1;
+      });
+    }
+
+    function initBuilderDragDrop(builderId) {
+      const builder = document.getElementById(builderId);
+      builder.querySelectorAll('.template-chip').forEach(chip => {
+        initChipDrag(chip, builderId);
+      });
+      initBuilderDropZone(builderId);
+    }
+
+    function initChipDrag(chip, builderId) {
+      if (chip.dataset.dragInit) return;
+      chip.dataset.dragInit = 'true';
+      
+      chip.addEventListener('dragstart', (e) => {
+        const builder = document.getElementById(builderId);
+        const chips = Array.from(builder.querySelectorAll('.template-chip'));
+        const index = chips.indexOf(chip);
+        
+        e.dataTransfer.setData('text/plain', chip.dataset.value);
+        e.dataTransfer.setData('fromIndex', index.toString());
+        e.dataTransfer.effectAllowed = 'move';
+        chip.classList.add('dragging');
+      });
+      
+      chip.addEventListener('dragend', () => {
+        chip.classList.remove('dragging');
+        removeDropIndicator();
+      });
+    }
+
+    function updateDropIndicator(builder, clientX) {
+      const chips = Array.from(builder.querySelectorAll('.template-chip:not(.dragging)'));
+      
+      if (!dropIndicator) {
+        dropIndicator = document.createElement('div');
+        dropIndicator.className = 'drop-indicator';
+      }
+      
+      let insertIndex = chips.length;
+      
+      for (let i = 0; i < chips.length; i++) {
+        const rect = chips[i].getBoundingClientRect();
+        const midX = rect.left + rect.width / 2;
+        
+        if (clientX < midX) {
+          insertIndex = i;
+          break;
+        }
+      }
+      
+      currentDropIndex = insertIndex;
+      
+      if (insertIndex < chips.length) {
+        builder.insertBefore(dropIndicator, chips[insertIndex]);
+      } else {
+        builder.appendChild(dropIndicator);
+      }
+    }
+
+    function removeDropIndicator() {
+      if (dropIndicator && dropIndicator.parentElement) {
+        dropIndicator.remove();
+      }
+    }
+
+    function initDragAndDrop(container, templateInputId) {
+      const builderId = getBuilderIdFromTextarea(templateInputId);
+      
+      container.querySelectorAll('.tag').forEach(tag => {
+        tag.addEventListener('dragstart', (e) => {
+          e.dataTransfer.setData('text/plain', tag.dataset.value);
+          e.dataTransfer.effectAllowed = 'copy';
+          tag.classList.add('dragging');
+        });
+        
+        tag.addEventListener('dragend', () => {
+          tag.classList.remove('dragging');
+          removeDropIndicator();
+        });
+        
+        tag.addEventListener('click', () => {
+          addChipToBuilder(builderId, tag.dataset.value);
+        });
+      });
+      
+      renderTemplateBuilder(builderId, document.getElementById(templateInputId).value);
+    }
+
     document.getElementById('addForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const form = e.target;
@@ -649,6 +1481,7 @@
             name: document.getElementById('name').value,
             url: document.getElementById('url').value,
             profileImage: document.getElementById('profileImage').value || undefined,
+            messageTemplate: document.getElementById('messageTemplate').value || undefined,
             ...webhookData
           })
         });
@@ -698,9 +1531,12 @@
 
     function openAddModal() {
       document.getElementById('addForm').reset();
+      document.getElementById('messageTemplate').value = '{title}\n{link}';
       connectedChannel = null;
       updateChannelStatus();
       updateProfilePreview('profileImage', 'profilePreview');
+      document.getElementById('rssFields').style.display = 'none';
+      renderTemplateBuilder('templateBuilder', '{title}\n{link}');
       document.getElementById('addModal').classList.add('show');
     }
 
@@ -719,7 +1555,11 @@
       document.getElementById('editId').value = id;
       document.getElementById('editName').value = feed.name;
       document.getElementById('editUrl').value = feed.url;
+      const templateValue = feed.messageTemplate || '{title}\n{link}';
+      document.getElementById('editMessageTemplate').value = templateValue;
       document.getElementById('editProfileImage').value = feed.profileImage || '';
+      document.getElementById('editRssFields').style.display = 'none';
+      renderTemplateBuilder('editTemplateBuilder', templateValue);
       updateProfilePreview('editProfileImage', 'editProfilePreview');
       
       const status = document.getElementById('editChannelStatus');
@@ -766,6 +1606,7 @@
           body: JSON.stringify({
             name: document.getElementById('editName').value,
             url: document.getElementById('editUrl').value,
+            messageTemplate: document.getElementById('editMessageTemplate').value || null,
             profileImage: document.getElementById('editProfileImage').value || null
           })
         });
@@ -808,6 +1649,8 @@
       }
     }
 
+    let currentPreviewFeedId = null;
+
     async function testFeed(id) {
       const feed = feedsData.find(f => f.id === id);
       if (!feed) return;
@@ -817,23 +1660,72 @@
         return;
       }
 
-      if (!confirm(`Send a test message for "${feed.name}" to Discord?\n\nThis will fetch the latest RSS item and send it to the connected channel.`)) {
-        return;
-      }
-
       try {
-        const res = await fetch(`${API}/feeds/${id}/test`, { method: 'POST' });
+        const res = await fetch(`${API}/feeds/${id}/preview`);
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to load preview');
+        }
+        
+        currentPreviewFeedId = id;
+        
+        const avatar = document.getElementById('previewAvatar');
+        if (data.profileImage) {
+          avatar.src = data.profileImage;
+          avatar.style.display = 'block';
+        } else {
+          avatar.src = '';
+          avatar.style.display = 'none';
+        }
+        
+        document.getElementById('previewUsername').textContent = data.feedName;
+        
+        const contentEl = document.getElementById('previewContent');
+        let content = data.content
+          .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+        content = content.replace(/(^|[^"=])(https?:\/\/[^\s<>"]+)/g, '$1<a href="$2" target="_blank">$2</a>');
+        contentEl.innerHTML = content;
+        
+        const channelInfo = data.webhookName ? `Channel: ${data.webhookName}` : '';
+        document.getElementById('previewChannel').textContent = channelInfo;
+        
+        document.getElementById('previewModal').classList.add('show');
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+
+    function closePreviewModal() {
+      document.getElementById('previewModal').classList.remove('show');
+      currentPreviewFeedId = null;
+    }
+
+    document.getElementById('sendTestBtn').addEventListener('click', async () => {
+      if (!currentPreviewFeedId) return;
+      
+      const btn = document.getElementById('sendTestBtn');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      
+      try {
+        const res = await fetch(`${API}/feeds/${currentPreviewFeedId}/test`, { method: 'POST' });
         const data = await res.json();
         
         if (!res.ok) {
           throw new Error(data.error || 'Test failed');
         }
         
+        closePreviewModal();
         showToast(data.message || 'Test message sent successfully!');
+        loadFeeds();
       } catch (e) {
         showToast(e.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send to Discord';
       }
-    }
+    });
 
     document.getElementById('checkInterval').addEventListener('input', updateCheckScheduleInfo);
 

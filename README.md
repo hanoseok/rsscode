@@ -1,4 +1,4 @@
-# RSS to Discord
+# RSScode
 
 RSS 피드를 모니터링하여 새 글을 Discord 채널로 자동 전송하는 서비스.
 

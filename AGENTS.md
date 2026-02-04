@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-RSS to Discord notification service built with TypeScript, Express.js, and SQLite.
+RSScode - RSS to Discord notification service built with TypeScript, Express.js, and SQLite.
 
 ### Key Features
 - Multi-feed management with per-feed Discord channels

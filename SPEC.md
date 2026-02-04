@@ -1,4 +1,4 @@
-# RSS to Discord - 기술 명세서
+# RSScode - 기술 명세서
 
 ## 1. 개요
 

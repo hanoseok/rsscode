@@ -1,7 +1,7 @@
 {
   "name": "rsscode",
   "version": "1.0.0",
-  "description": "RSS to Discord notification service",
+  "description": "RSScode - RSS to Discord notification service",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {

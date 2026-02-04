@@ -61,7 +61,9 @@
     .btn-danger:hover { background: #b91c1c; }
     .btn-discord { background: #5865f2; color: white; }
     .btn-discord:hover { background: #4752c4; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
     .btn-sm { padding: 0.5rem 1rem; font-size: 0.8rem; }
+    .required-mark { color: #ef4444; margin-left: 2px; }
     .actions { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
     .feed-list { display: flex; flex-direction: column; gap: 1rem; max-height: 60vh; overflow-y: auto; }
     .feed-item {
@@ -485,6 +487,9 @@
         <div class="actions" style="margin-top: 0;">
           <button type="button" class="btn btn-primary btn-sm" onclick="openAddModal()">Add Feed</button>
           <button type="button" class="btn btn-secondary btn-sm" id="checkBtn">Check Now</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="exportFeeds()">Export</button>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('importFile').click()">Import</button>
+          <input type="file" id="importFile" accept=".json" style="display:none" onchange="importFeeds(this)">
         </div>
       </div>
       <div id="feedList" class="feed-list">
@@ -506,11 +511,11 @@
           </div>
         </div>
         <div class="form-group">
-          <label for="editName">Feed Name</label>
+          <label for="editName">Feed Name<span class="required-mark">*</span></label>
           <input type="text" id="editName" required>
         </div>
         <div class="form-group">
-          <label for="editUrl">RSS URL</label>
+          <label for="editUrl">RSS URL<span class="required-mark">*</span></label>
           <div class="url-row">
             <input type="url" id="editUrl" required>
             <button type="button" class="btn btn-secondary btn-sm" onclick="fetchRssFields('editUrl', 'editRssFields', 'editMessageTemplate')">Fetch</button>
@@ -518,7 +523,7 @@
           <div id="editRssFields" class="tag-container" style="display: none;"></div>
         </div>
         <div class="form-group">
-          <label>Message Template</label>
+          <label>Message Template<span class="required-mark">*</span></label>
           <div id="editTemplateBuilder" class="template-builder"></div>
           <textarea id="editMessageTemplate"></textarea>
           <div class="template-actions">
@@ -554,11 +559,11 @@
           </div>
         </div>
         <div class="form-group">
-          <label for="name">Feed Name</label>
+          <label for="name">Feed Name<span class="required-mark">*</span></label>
           <input type="text" id="name" placeholder="TechCrunch" required>
         </div>
         <div class="form-group">
-          <label for="url">RSS URL</label>
+          <label for="url">RSS URL<span class="required-mark">*</span></label>
           <div class="url-row">
             <input type="url" id="url" placeholder="https://example.com/feed.xml" required>
             <button type="button" class="btn btn-secondary btn-sm" onclick="fetchRssFields('url', 'rssFields', 'messageTemplate')">Fetch</button>
@@ -566,7 +571,7 @@
           <div id="rssFields" class="tag-container" style="display: none;"></div>
         </div>
         <div class="form-group">
-          <label>Message Template</label>
+          <label>Message Template<span class="required-mark">*</span></label>
           <div id="templateBuilder" class="template-builder"></div>
           <textarea id="messageTemplate">{title}
 {link}</textarea>
@@ -585,7 +590,7 @@
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" onclick="closeAddModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary">Add Feed</button>
+          <button type="submit" class="btn btn-primary" id="addFeedSubmit">Add Feed</button>
         </div>
       </form>
     </div>
@@ -664,11 +669,30 @@
       }
     }
 
+    function updateAddFormValidity() {
+      const name = document.getElementById('name').value.trim();
+      const url = document.getElementById('url').value.trim();
+      const template = document.getElementById('messageTemplate').value.trim();
+      const submit = document.getElementById('addFeedSubmit');
+      const isValid = name.length > 0 && url.length > 0 && template.length > 0;
+      submit.disabled = !isValid;
+    }
+
+    function setupAddFormValidation() {
+      const form = document.getElementById('addForm');
+      if (form.dataset.validationInit) return;
+      form.dataset.validationInit = 'true';
+      document.getElementById('name').addEventListener('input', updateAddFormValidity);
+      document.getElementById('url').addEventListener('input', updateAddFormValidity);
+      document.getElementById('messageTemplate').addEventListener('input', updateAddFormValidity);
+    }
+
     function saveFormData() {
       const data = {
         name: document.getElementById('name').value,
         url: document.getElementById('url').value,
-        profileImage: document.getElementById('profileImage').value
+        profileImage: document.getElementById('profileImage').value,
+        messageTemplate: document.getElementById('messageTemplate').value
       };
       localStorage.setItem('rsscode_form', JSON.stringify(data));
     }
@@ -681,7 +705,16 @@
           document.getElementById('name').value = data.name || '';
           document.getElementById('url').value = data.url || '';
           document.getElementById('profileImage').value = data.profileImage || '';
-        } catch (e) {}
+          const template = data.messageTemplate || '[{title}]({link})\n{description}';
+          document.getElementById('messageTemplate').value = template;
+          renderTemplateBuilder('templateBuilder', template);
+          updateProfilePreview('profileImage', 'profilePreview');
+        } catch (e) {
+          console.error('Failed to restore form data:', e);
+        }
+        document.getElementById('addModal').classList.add('show');
+        setupAddFormValidation();
+        updateAddFormValidity();
       }
       
       const savedChannel = localStorage.getItem('rsscode_channel');
@@ -798,8 +831,51 @@
       setTimeout(() => toast.remove(), 3000);
     }
 
+    async function exportFeeds() {
+      try {
+        const res = await fetch('/api/feeds/export');
+        const data = await res.json();
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `rsscode_${yyyy}${mm}${dd}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      } catch (e) {
+        showToast('Export failed', 'error');
+      }
+    }
+
+    async function importFeeds(input) {
+      const file = input.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const res = await fetch('/api/feeds/import', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        const result = await res.json();
+        if (res.ok) {
+          showToast(`Imported ${result.imported} feeds (${result.skipped} skipped)`);
+          loadFeeds();
+        } else {
+          showToast(result.error || 'Import failed', 'error');
+        }
+      } catch (e) {
+        showToast('Invalid JSON file', 'error');
+      }
+      input.value = '';
+    }
+
     function formatTime(timestamp) {
-      if (!timestamp) return 'Never';
+      if (!timestamp) return '-';
       return new Date(timestamp).toLocaleString('ko-KR');
     }
 
@@ -1004,6 +1080,9 @@
       const textareaId = Object.keys(templateBuilderMap).find(k => templateBuilderMap[k] === builderId);
       if (textareaId) {
         document.getElementById(textareaId).value = chipsToTemplate(builderId);
+        if (textareaId === 'messageTemplate') {
+          updateAddFormValidity();
+        }
       }
     }
 
@@ -1551,13 +1630,15 @@
 
     function openAddModal() {
       document.getElementById('addForm').reset();
-      document.getElementById('messageTemplate').value = '{title}\n{link}';
+      document.getElementById('messageTemplate').value = '[{title}]({link})\n{description}';
       connectedChannel = null;
       updateChannelStatus();
       updateProfilePreview('profileImage', 'profilePreview');
       document.getElementById('rssFields').style.display = 'none';
-      renderTemplateBuilder('templateBuilder', '{title}\n{link}');
+      renderTemplateBuilder('templateBuilder', '[{title}]({link})\n{description}');
       document.getElementById('addModal').classList.add('show');
+      setupAddFormValidation();
+      updateAddFormValidity();
     }
 
     function closeAddModal() {
@@ -1575,7 +1656,7 @@
       document.getElementById('editId').value = id;
       document.getElementById('editName').value = feed.name;
       document.getElementById('editUrl').value = feed.url;
-      const templateValue = feed.messageTemplate || '{title}\n{link}';
+      const templateValue = feed.messageTemplate || '[{title}]({link})\n{description}';
       document.getElementById('editMessageTemplate').value = templateValue;
       document.getElementById('editProfileImage').value = feed.profileImage || '';
       document.getElementById('editRssFields').style.display = 'none';

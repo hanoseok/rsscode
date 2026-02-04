@@ -12,6 +12,7 @@ RSS 피드를 모니터링하여 새 글을 Discord 채널로 자동 전송하�
 - **메시지 템플릿**: 피드별 메시지 포맷 커스터마이징 (드래그 앤 드롭 에디터)
 - **자동 스케줄링**: 설정 가능한 주기로 새 글 확인 (기본 10분)
 - **스마트 알림**: 첫 연결 시 기존 글은 저장만, 새 글부터 알림
+- **피드 내보내기/가져오기**: JSON으로 피드 설정 백업 및 복원
 - **웹 UI**: 다크 테마의 관리자 인터페이스
 - **Docker 지원**: 간편한 배포
 
@@ -92,13 +93,13 @@ docker-compose up -d
 
 ### 사용 가능한 필드
 
-`title`, `link`, `description`, `content`, `pubDate`, `author`, `categories`
+`title`, `link`, `description`, `content`, `pubDate`, `isoDate`, `author`, `categories`
 
 ### 기본 템플릿
 
 ```
-{title}
-{link}
+[{title}]({link})
+{description}
 ```
 
 ### 예시
@@ -204,14 +205,19 @@ npm run build
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/feeds` | 피드 목록 |
+| GET | `/api/feeds/:id` | 피드 상세 조회 |
 | POST | `/api/feeds` | 피드 등록 |
 | PUT | `/api/feeds/:id` | 피드 수정 |
 | DELETE | `/api/feeds/:id` | 피드 삭제 |
+| GET | `/api/feeds/export` | 피드 JSON 내보내기 |
+| POST | `/api/feeds/import` | 피드 JSON 가져오기 |
 | POST | `/api/feeds/preview-rss` | RSS 필드 미리보기 |
 | GET | `/api/feeds/:id/preview` | 테스트 메시지 미리보기 |
 | POST | `/api/feeds/:id/test` | 테스트 전송 |
 | GET | `/api/discord/authorize` | Discord OAuth 시작 |
+| GET | `/api/discord/callback` | Discord OAuth 콜백 |
 | GET | `/api/discord/channels` | 연결된 채널 목록 |
+| DELETE | `/api/discord/:feedId` | Discord 연결 해제 |
 | GET | `/api/settings` | 설정 조회 |
 | PUT | `/api/settings` | 설정 저장 |
 | POST | `/api/check` | 수동 RSS 체크 |

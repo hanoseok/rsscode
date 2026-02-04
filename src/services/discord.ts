@@ -17,6 +17,10 @@ interface DiscordMessage {
   rssItem: RssItemData;
 }
 
+function collapseNewlines(text: string): string {
+  return text.replace(/\n\s*\n/g, "\n").replace(/\n{2,}/g, "\n");
+}
+
 function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + "...";
@@ -26,10 +30,10 @@ function applyTemplate(template: string, item: RssItemData): string {
   let result = template;
 
   const fieldMap: Record<string, string> = {
-    title: item.title || "",
+    title: collapseNewlines(item.title || ""),
     link: item.link || "",
-    description: item.description || "",
-    content: item.content || "",
+    description: collapseNewlines(item.description || ""),
+    content: collapseNewlines(item.content || ""),
     pubDate: item.pubDate || "",
     isoDate: item.isoDate || "",
     author: item.author || "",
@@ -47,12 +51,14 @@ function applyTemplate(template: string, item: RssItemData): string {
     return truncate(value, 500);
   });
 
+  result = result.replace(/\n{2,}/g, "\n");
+
   return result.trim();
 }
 
 export async function sendToDiscord(message: DiscordMessage): Promise<boolean> {
   const { rssItem, messageTemplate } = message;
-  const defaultTemplate = "{title}\n{link}";
+  const defaultTemplate = "[{title}]({link})\n{description}";
   const template = messageTemplate || defaultTemplate;
   const content = applyTemplate(template, rssItem);
 

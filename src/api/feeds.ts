@@ -25,6 +25,34 @@ router.get("/", async (_req, res) => {
   }
 });
 
+router.get("/export", async (_req, res) => {
+  try {
+    const allFeeds = await db.select().from(feeds);
+    const exportData = allFeeds.map((f) => ({
+      name: f.name,
+      url: f.url,
+      profileImage: f.profileImage,
+      webhookUrl: f.webhookUrl,
+      webhookChannelId: f.webhookChannelId,
+      webhookGuildId: f.webhookGuildId,
+      webhookName: f.webhookName,
+      messageTemplate: f.messageTemplate,
+      enabled: f.enabled,
+    }));
+    const now = new Date();
+    const yyyy = now.getFullYear();
+    const mm = String(now.getMonth() + 1).padStart(2, "0");
+    const dd = String(now.getDate()).padStart(2, "0");
+    const filename = `rsscode_${yyyy}${mm}${dd}.json`;
+    res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
+    res.setHeader("Content-Type", "application/json");
+    res.json(exportData);
+  } catch (error) {
+    console.error("Export failed:", error);
+    res.status(500).json({ error: "Failed to export feeds" });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
@@ -114,6 +142,53 @@ router.delete("/:id", async (req, res) => {
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: "Failed to delete feed" });
+  }
+});
+
+router.post("/import", async (req, res) => {
+  try {
+    const importData = req.body;
+    if (!Array.isArray(importData)) {
+      res.status(400).json({ error: "Invalid format: expected an array of feeds" });
+      return;
+    }
+
+    let imported = 0;
+    let skipped = 0;
+
+    for (const item of importData) {
+      const parsed = createFeedSchema.safeParse(item);
+      if (!parsed.success) {
+        skipped++;
+        continue;
+      }
+
+      try {
+        await db.insert(feeds).values({
+          name: parsed.data.name,
+          url: parsed.data.url,
+          profileImage: parsed.data.profileImage,
+          webhookUrl: parsed.data.webhookUrl,
+          webhookChannelId: parsed.data.webhookChannelId,
+          webhookGuildId: parsed.data.webhookGuildId,
+          webhookName: parsed.data.webhookName,
+          messageTemplate: parsed.data.messageTemplate,
+          enabled: parsed.data.enabled,
+        });
+        imported++;
+      } catch (error: unknown) {
+        if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
+          skipped++;
+        } else {
+          skipped++;
+        }
+      }
+    }
+
+    res.json({ imported, skipped, total: importData.length });
+  } catch (error) {
+    console.error("Import failed:", error);
+    res.status(500).json({ error: "Failed to import feeds" });
   }
 });
 
@@ -220,7 +295,7 @@ router.get("/:id/preview", async (req, res) => {
       categories: latestItem.categories?.join(", "),
     };
 
-    const defaultTemplate = "{title}\n{link}";
+    const defaultTemplate = "[{title}]({link})\n{description}";
     const template = feed.messageTemplate || defaultTemplate;
     const content = applyTemplate(template, rssItem);
 

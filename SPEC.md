@@ -15,6 +15,8 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
 | 테스트 전송 | 최신 RSS 항목을 Discord로 테스트 전송 |
 | 자동 스케줄링 | 설정 가능한 주기로 새 글 확인 (1-1440분) |
 | 웹 UI | 다크 테마의 관리자 인터페이스 |
+| 메시지 템플릿 | 피드별 메시지 포맷 커스터마이징 (드래그 앤 드롭 에디터) |
+| 피드 내보내기/가져오기 | JSON으로 피드 설정 백업 및 복원 |
 | 스마트 알림 | 첫 체크 시 기존 글은 저장만, 새 글만 알림 |
 
 ---
@@ -97,7 +99,7 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
 | `last_checked_title` | TEXT | 마지막 체크한 글 제목 |
 | `last_sent_at` | INTEGER | 마지막 전송 시간 |
 | `last_sent_title` | TEXT | 마지막 전송한 글 제목 |
-| `message_template` | TEXT | 메시지 템플릿 (기본: `{title}\n{link}`) |
+| `message_template` | TEXT | 메시지 템플릿 (기본: `[{title}]({link})\n{description}`) |
 
 ### 4.2 posts 테이블
 | 컬럼 | 타입 | 설명 |
@@ -144,6 +146,7 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
     "webhookChannelId": "123456789",
     "webhookGuildId": "987654321",
     "webhookName": "RSS to Discord",
+    "messageTemplate": "[{title}]({link})\n{description}",
     "enabled": true,
     "createdAt": "2024-01-01T00:00:00.000Z",
     "lastCheckedAt": "2024-01-01T12:00:00.000Z",
@@ -153,6 +156,34 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
   }
 ]
 ```
+
+#### `GET /api/feeds/:id`
+단일 피드 조회
+
+**Response**: `200 OK`
+```json
+{
+  "id": 1,
+  "name": "TechCrunch",
+  "url": "https://techcrunch.com/feed/",
+  "profileImage": "https://example.com/logo.png",
+  "webhookUrl": "https://discord.com/api/webhooks/...",
+  "webhookChannelId": "123456789",
+  "webhookGuildId": "987654321",
+  "webhookName": "RSS to Discord",
+    "messageTemplate": "[{title}]({link})\n{description}",
+    "enabled": true,
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "lastCheckedAt": "2024-01-01T12:00:00.000Z",
+    "lastCheckedTitle": "Latest Article",
+    "lastSentAt": "2024-01-01T12:00:00.000Z",
+    "lastSentTitle": "Latest Article"
+  }
+}
+```
+
+**Errors**:
+- `404 Not Found`: 피드 없음
 
 #### `POST /api/feeds`
 피드 등록
@@ -166,7 +197,8 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
   "webhookUrl": "https://discord.com/api/webhooks/...",
   "webhookChannelId": "123456789",
   "webhookGuildId": "987654321",
-  "webhookName": "RSS to Discord"
+  "webhookName": "RSS to Discord",
+  "messageTemplate": "[{title}]({link})\n{description}"
 }
 ```
 
@@ -185,6 +217,7 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
   "name": "New Name",
   "url": "https://new-url.com/feed/",
   "profileImage": "https://example.com/new-logo.png",
+  "messageTemplate": "[{title}]({link})\n{description:200}",
   "enabled": false
 }
 ```
@@ -209,7 +242,7 @@ RSS 필드 미리보기 (템플릿 빌더용)
 **Response**: `200 OK`
 ```json
 {
-  "fields": ["title", "link", "description", "content", "pubDate", "author", "categories"],
+  "fields": ["title", "link", "description", "content", "pubDate", "isoDate", "author", "categories"],
   "sample": {
     "title": "Article Title",
     "link": "https://example.com/article",
@@ -245,6 +278,40 @@ RSS 필드 미리보기 (템플릿 빌더용)
 **Errors**:
 - `400 Bad Request`: Discord 미연결, RSS fetch 실패, RSS 항목 없음
 - `404 Not Found`: 피드 없음
+
+#### `GET /api/feeds/export`
+피드 설정 JSON 내보내기
+
+**Response**: `200 OK` (파일 다운로드: `rsscode_yyyyMMdd.json`)
+```json
+[
+  {
+    "name": "TechCrunch",
+    "url": "https://techcrunch.com/feed/",
+    "profileImage": "https://example.com/logo.png",
+    "webhookUrl": "https://discord.com/api/webhooks/...",
+    "webhookChannelId": "123456789",
+    "webhookGuildId": "987654321",
+    "webhookName": "RSS to Discord",
+    "messageTemplate": "[{title}]({link})\n{description}",
+    "enabled": true
+  }
+]
+```
+
+#### `POST /api/feeds/import`
+피드 설정 JSON 가져오기 (URL 중복 시 스킵)
+
+**Request Body**: Export와 동일한 JSON 배열
+
+**Response**: `200 OK`
+```json
+{
+  "imported": 3,
+  "skipped": 1,
+  "total": 4
+}
+```
 
 ---
 
@@ -390,13 +457,14 @@ Discord OAuth 콜백 (내부 사용)
 - `description` - 본문 미리보기
 - `content` - 전체 본문
 - `pubDate` - 발행일
+- `isoDate` - ISO 8601 형식 발행일
 - `author` - 작성자
 - `categories` - 카테고리
 
 #### 기본 템플릿
 ```
-{title}
-{link}
+[{title}]({link})
+{description}
 ```
 
 ### 7.3 Webhook 메시지 포맷
@@ -553,6 +621,19 @@ rsscode/
 | v0.5.0 | 2024-02-01 | Discord message format (title+link, 200 char content) |
 | v0.6.0 | 2024-02-02 | Smart notifications, UI improvements, webhook name display |
 | v0.7.0 | 2024-02-02 | Message template builder, test preview modal |
+| v0.8.0 | 2026-02-04 | Feed export/import, default template change, UI improvements |
+
+### v0.8.0 상세 변경사항
+- **피드 내보내기/가져오기**: JSON으로 피드 설정 백업 및 복원
+  - Export: `rsscode_yyyyMMdd.json` 파일 다운로드
+  - Import: JSON 파일 업로드, URL 중복 시 스킵
+  - 새 API: `GET /api/feeds/export`, `POST /api/feeds/import`
+- **기본 템플릿 변경**: `{title}\n{link}` → `[{title}]({link})\n{description}`
+- **연속 줄바꿈 압축**: 템플릿 필드 값의 `\n\n` 이상을 `\n` 하나로 정리
+- **필수 필드 표시**: Feed Name, RSS URL, Message Template에 빨간 `*` 표시
+- **비활성화 버튼 스타일**: disabled 버튼 dimmed 처리
+- **null 시간 표시**: Checked/Sent 시간이 없을 때 `Never` 대신 `-` 표시
+- **문서 동기화**: README/SPEC에 누락된 API, 필드(isoDate, messageTemplate) 추가
 
 ### v0.7.0 상세 변경사항
 - **메시지 템플릿 빌더**: 피드별 Discord 메시지 포맷 커스터마이징

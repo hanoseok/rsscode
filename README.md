@@ -119,8 +119,9 @@ docker-compose up -d
 
 | 상황 | 동작 |
 |------|------|
-| 첫 체크 | 최신 글 1개만 전송, 나머지 저장 |
-| 이후 체크 | 새 글만 알림 |
+| Toggle OFF | 체크 안 함, 전송 안 함 |
+| Toggle ON + 첫 체크 | 최신 글 1개만 전송, 나머지 저장 |
+| Toggle ON + 이후 체크 | 새 글만 알림 |
 | Test 버튼 | 수동으로 최신 글 전송 (미리보기 후) |
 
 ## Environment Variables

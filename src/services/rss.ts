@@ -52,7 +52,10 @@ export async function checkFeed(feed: Feed): Promise<number> {
           ? new Date(item.pubDate)
           : undefined;
 
-      if (!feed.lastSentAt) {
+      const isFirstCheck = !feed.lastSentAt;
+      const isFirstItem = rssFeed.items.indexOf(item) === 0;
+
+      if (isFirstCheck && !isFirstItem) {
         await db.insert(posts).values({
           feedId: feed.id,
           guid,
@@ -63,7 +66,7 @@ export async function checkFeed(feed: Feed): Promise<number> {
         continue;
       }
 
-      if (publishedAt && publishedAt <= feed.lastSentAt) {
+      if (feed.lastSentAt && publishedAt && publishedAt <= feed.lastSentAt) {
         await db.insert(posts).values({
           feedId: feed.id,
           guid,

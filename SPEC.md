@@ -17,7 +17,7 @@ RSS 피드를 주기적으로 모니터링하여 새로운 글을 Discord 채널
 | 웹 UI | 다크 테마의 관리자 인터페이스 |
 | 메시지 템플릿 | 피드별 메시지 포맷 커스터마이징 (드래그 앤 드롭 에디터) |
 | 피드 내보내기/가져오기 | JSON으로 피드 설정 백업 및 복원 |
-| 스마트 알림 | 첫 체크 시 기존 글은 저장만, 새 글만 알림 |
+| 스마트 알림 | 첫 체크 시 최신 글 1개만 전송, 이후 새 글만 알림 |
 
 ---
 
@@ -493,7 +493,8 @@ Discord OAuth 콜백 (내부 사용)
    a. RSS 파싱 (User-Agent 헤더 포함)
    b. 각 항목의 guid로 중복 체크
    c. lastSentAt이 null이면 (첫 체크):
-      - 모든 항목을 posts에 저장만 (전송 안함)
+       - 최신 항목 1개만 Discord 전송
+       - 나머지 항목은 posts에 저장만
    d. lastSentAt이 있으면:
       - 항목의 publishedAt > lastSentAt인 경우만 Discord 전송
       - lastSentAt, lastSentTitle 업데이트
@@ -503,7 +504,7 @@ Discord OAuth 콜백 (내부 사용)
 ### 8.3 알림 규칙
 | 조건 | 동작 |
 |------|------|
-| `lastSentAt` 없음 (첫 체크) | 저장만, 전송 안함 |
+| `lastSentAt` 없음 (첫 체크) | 최신 1개 전송, 나머지 저장 |
 | 항목 발행일 ≤ `lastSentAt` | 저장만, 전송 안함 |
 | 항목 발행일 > `lastSentAt` | Discord 전송 |
 
@@ -622,6 +623,13 @@ rsscode/
 | v0.6.0 | 2024-02-02 | Smart notifications, UI improvements, webhook name display |
 | v0.7.0 | 2024-02-02 | Message template builder, test preview modal |
 | v0.8.0 | 2026-02-04 | Feed export/import, default template change, UI improvements |
+| v0.8.1 | 2026-02-05 | 프로젝트명 RSScode로 변경 |
+| v0.8.2 | 2026-02-05 | 첫 체크 시 최신 글 자동 전송 (Test 버튼 불필요) |
+
+### v0.8.2 상세 변경사항
+- **첫 체크 시 자동 전송**: Test 버튼 클릭 없이도 첫 체크 시 최신 글 1개 자동 전송
+  - 기존: 첫 체크는 저장만, Test 클릭 후부터 전송
+  - 변경: 첫 체크에서 최신 글 1개 전송, 나머지 저장
 
 ### v0.8.0 상세 변경사항
 - **피드 내보내기/가져오기**: JSON으로 피드 설정 백업 및 복원

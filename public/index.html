@@ -1945,7 +1945,7 @@
         
         try {
           const interval = parseInt(document.getElementById('checkInterval').value) || 10;
-          const res = await fetch(`${API}/settings`, {
+          const res = await fetch(`${API}/settings?workspaceId=${currentWorkspaceId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -2155,7 +2155,7 @@
     // ============================================
     async function loadSettings() {
       try {
-        const res = await fetch(`${API}/settings`, { credentials: 'include' });
+        const res = await fetch(`${API}/settings?workspaceId=${currentWorkspaceId}`, { credentials: 'include' });
         const settings = await res.json();
         
         document.getElementById('clientId').value = settings.discord_client_id || '';
@@ -2175,7 +2175,7 @@
       if (!discordConfigured) {
         btn.onclick = (e) => { e.preventDefault(); toggleSettings(true); showToast('Configure Discord settings first', 'error'); };
       } else {
-        btn.onclick = (e) => { e.preventDefault(); saveFormData(); window.location.href = '/api/discord/authorize'; };
+        btn.onclick = (e) => { e.preventDefault(); saveFormData(); window.location.href = `/api/discord/authorize?workspaceId=${currentWorkspaceId}`; };
       }
     }
     
@@ -2410,7 +2410,7 @@
           showToast('Configure Discord settings first', 'error');
           return;
         }
-        window.location.href = `/api/discord/authorize?feedId=${id}`;
+        window.location.href = `/api/discord/authorize?workspaceId=${currentWorkspaceId}&feedId=${id}`;
       };
       
       document.getElementById('editModal').classList.add('show');

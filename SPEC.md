@@ -693,7 +693,7 @@ Discord OAuth 콜백. state에서 workspaceId를 추출하여 해당 워크스�
 │ ─────── │  │ Feed Card 1 (toggle, test, edit)    │    │
 │ Logout  │  │ Feed Card 2                         │    │
 │         │  │ ...                                 │    │
-└─────────┴──┴───────────────────────────────────┘────┘
+└─────────┴───────────────────────────────────────────┘
 ```
 
 ### 10.2 주요 기능
@@ -764,7 +764,7 @@ rsscode/
 ├── .github/
 │   └── workflows/
 │       ├── ci.yml            # 테스트 워크플로우
-│       └── docker.yml        # Docker 빌드 (태그 전용)
+│       └── docker.yml        # Docker 빌드 (태그 푸시 시 latest로 빌드)
 ├── Dockerfile                # Multi-stage Docker 빌드
 ├── docker-compose.yml
 ├── package.json
@@ -785,7 +785,9 @@ rsscode/
 **태그 규칙**:
 | 트리거 | 태그 |
 |--------|------|
-| `v1.2.3` 태그 push | `v1.2.3`, `latest` |
+| `v*` 태그 push | `latest` |
+
+**플랫폼**: `linux/amd64`, `linux/arm64` (Synology NAS 호환)
 
 ### 12.2 CI/CD Pipeline
 
@@ -819,9 +821,10 @@ rsscode/
 | v0.8.0 | 2026-02-04 | Feed export/import, default template change, UI improvements |
 | v0.8.1 | 2026-02-05 | 프로젝트명 RSScode로 변경 |
 | v0.8.2 | 2026-02-05 | 첫 체크 시 최신 글 자동 전송 |
-| v0.9.0 | 2026-02-07 | 사용자 인증, 워크스페이스, 워크스페이스별 설정, 관리자 기능 |
+| v1.0.0 | 2026-02-07 | 사용자 인증, 워크스페이스, 워크스페이스별 설정, 관리자 기능 |
+| v1.0.1 | 2026-02-08 | 워크스페이스 선택 전 설정 로드 버그 수정, Docker 워크플로우 개선 |
 
-### v0.9.0 상세 변경사항
+### v1.0.0 상세 변경사항
 - **사용자 인증**: 세션 기반 로그인/회원가입 (bcryptjs)
 - **워크스페이스**: 팀 또는 용도별 피드 분리 관리
 - **워크스페이스별 Discord 설정**: Client ID/Secret, 체크 주기를 워크스페이스마다 독립 설정
@@ -830,6 +833,10 @@ rsscode/
 - **웹 UI 전면 개편**: LNB 기반 레이아웃, 로그인/회원가입 화면, 관리자 페이지
 - **기존 환경변수 제거**: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `CHECK_INTERVAL_MINUTES`는 더 이상 환경변수로 설정하지 않고 워크스페이스별 Settings에서 관리
 - **DB 스키마 변경**: users, workspaces, workspace_members, workspace_settings 테이블 추가, settings(key-value) 테이블 제거
+
+### v1.0.1 상세 변경사항
+- **버그 수정**: 워크스페이스 선택 전 `loadSettings()` 호출되어 `workspaceId=null` 에러 발생하던 문제 수정
+- **Docker 워크플로우**: arm64 플랫폼 지원 추가 (Synology NAS 호환)
 
 ---
 

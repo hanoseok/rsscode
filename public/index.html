@@ -1486,9 +1486,8 @@
         }
       }
       
-      // Load workspaces and feeds
+      // Load workspaces (this will call selectWorkspace which loads feeds and settings)
       loadWorkspaces();
-      loadSettings();
     }
     
     function showFeedsPage() {
@@ -1586,6 +1585,7 @@
       renderWorkspaces();
       showFeedsPage();
       loadFeeds();
+      loadSettings();
     }
     
     async function createWorkspace(name) {

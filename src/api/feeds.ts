@@ -1,10 +1,11 @@
-import { Router } from "express";
+import { Router, Response } from "express";
 import Parser from "rss-parser";
 import { db } from "../db/index.js";
-import { feeds, posts } from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { feeds, posts, workspaces, workspaceMembers } from "../db/schema.js";
+import { eq, and, or, inArray } from "drizzle-orm";
 import { createFeedSchema, updateFeedSchema } from "../types/index.js";
 import { sendToDiscord, applyTemplate } from "../services/discord.js";
+import { requireAuth, AuthRequest } from "../middleware/auth.js";
 
 const parser = new Parser({
   headers: {
@@ -16,19 +17,60 @@ const parser = new Parser({
 
 const router = Router();
 
-router.get("/", async (_req, res) => {
+router.use(requireAuth);
+
+function getUserWorkspaceIds(userId: number): number[] {
+  const owned = db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.ownerId, userId)).all();
+  const member = db.select({ workspaceId: workspaceMembers.workspaceId }).from(workspaceMembers).where(eq(workspaceMembers.userId, userId)).all();
+  const ids = new Set([...owned.map(w => w.id), ...member.map(m => m.workspaceId)]);
+  return Array.from(ids);
+}
+
+router.get("/", async (req: AuthRequest, res: Response) => {
   try {
-    const allFeeds = await db.select().from(feeds);
-    res.json(allFeeds);
+    const workspaceId = req.query.workspaceId ? parseInt(req.query.workspaceId as string) : undefined;
+    const userWorkspaceIds = getUserWorkspaceIds(req.userId!);
+
+    if (workspaceId) {
+      if (!userWorkspaceIds.includes(workspaceId)) {
+        res.status(403).json({ error: "Access denied to this workspace" });
+        return;
+      }
+      const workspaceFeeds = db.select().from(feeds).where(eq(feeds.workspaceId, workspaceId)).all();
+      res.json(workspaceFeeds);
+    } else {
+      if (userWorkspaceIds.length === 0) {
+        res.json([]);
+        return;
+      }
+      const allFeeds = db.select().from(feeds).where(inArray(feeds.workspaceId, userWorkspaceIds)).all();
+      res.json(allFeeds);
+    }
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch feeds" });
   }
 });
 
-router.get("/export", async (_req, res) => {
+router.get("/export", async (req: AuthRequest, res: Response) => {
   try {
-    const allFeeds = await db.select().from(feeds);
-    const exportData = allFeeds.map((f) => ({
+    const workspaceId = req.query.workspaceId ? parseInt(req.query.workspaceId as string) : undefined;
+    const userWorkspaceIds = getUserWorkspaceIds(req.userId!);
+
+    let feedsToExport: typeof feeds.$inferSelect[] = [];
+    if (workspaceId) {
+      if (!userWorkspaceIds.includes(workspaceId)) {
+        res.status(403).json({ error: "Access denied" });
+        return;
+      }
+      feedsToExport = db.select().from(feeds).where(eq(feeds.workspaceId, workspaceId)).all();
+    } else {
+      if (userWorkspaceIds.length === 0) {
+        feedsToExport = [];
+      } else {
+        feedsToExport = db.select().from(feeds).where(inArray(feeds.workspaceId, userWorkspaceIds)).all();
+      }
+    }
+    const exportData = feedsToExport.map((f) => ({
       name: f.name,
       url: f.url,
       profileImage: f.profileImage,
@@ -53,12 +95,18 @@ router.get("/export", async (_req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: AuthRequest, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
-    const feed = await db.select().from(feeds).where(eq(feeds.id, id)).get();
+    const idParam = req.params.id;
+    const id = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    const feed = db.select().from(feeds).where(eq(feeds.id, id)).get();
     if (!feed) {
       res.status(404).json({ error: "Feed not found" });
+      return;
+    }
+    const userWorkspaceIds = getUserWorkspaceIds(req.userId!);
+    if (feed.workspaceId && !userWorkspaceIds.includes(feed.workspaceId)) {
+      res.status(403).json({ error: "Access denied" });
       return;
     }
     res.json(feed);
@@ -67,7 +115,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: AuthRequest, res: Response) => {
   try {
     const parsed = createFeedSchema.safeParse(req.body);
     if (!parsed.success) {
@@ -75,9 +123,22 @@ router.post("/", async (req, res) => {
       return;
     }
 
-    const result = await db
+    const workspaceId = req.body.workspaceId;
+    if (!workspaceId) {
+      res.status(400).json({ error: "workspaceId is required" });
+      return;
+    }
+
+    const userWorkspaceIds = getUserWorkspaceIds(req.userId!);
+    if (!userWorkspaceIds.includes(workspaceId)) {
+      res.status(403).json({ error: "Access denied to this workspace" });
+      return;
+    }
+
+    const result = db
       .insert(feeds)
       .values({
+        workspaceId,
         name: parsed.data.name,
         url: parsed.data.url,
         profileImage: parsed.data.profileImage,
@@ -87,9 +148,10 @@ router.post("/", async (req, res) => {
         webhookName: parsed.data.webhookName,
         messageTemplate: parsed.data.messageTemplate,
       })
-      .returning();
+      .returning()
+      .get();
 
-    res.status(201).json(result[0]);
+    res.status(201).json(result);
   } catch (error: unknown) {
     if (
       error instanceof Error &&
@@ -102,54 +164,81 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", async (req: AuthRequest, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
+    const idParam = req.params.id;
+    const id = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    
+    const feed = db.select().from(feeds).where(eq(feeds.id, id)).get();
+    if (!feed) {
+      res.status(404).json({ error: "Feed not found" });
+      return;
+    }
+
+    const userWorkspaceIds = getUserWorkspaceIds(req.userId!);
+    if (feed.workspaceId && !userWorkspaceIds.includes(feed.workspaceId)) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
+
     const parsed = updateFeedSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ error: parsed.error.errors });
       return;
     }
 
-    const result = await db
+    const result = db
       .update(feeds)
       .set(parsed.data)
       .where(eq(feeds.id, id))
-      .returning();
+      .returning()
+      .get();
 
-    if (result.length === 0) {
-      res.status(404).json({ error: "Feed not found" });
-      return;
-    }
-    res.json(result[0]);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: "Failed to update feed" });
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req: AuthRequest, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
-    const result = await db
-      .delete(feeds)
-      .where(eq(feeds.id, id))
-      .returning();
-
-    if (result.length === 0) {
+    const idParam = req.params.id;
+    const id = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    
+    const feed = db.select().from(feeds).where(eq(feeds.id, id)).get();
+    if (!feed) {
       res.status(404).json({ error: "Feed not found" });
       return;
     }
+
+    const userWorkspaceIds = getUserWorkspaceIds(req.userId!);
+    if (feed.workspaceId && !userWorkspaceIds.includes(feed.workspaceId)) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
+
+    db.delete(feeds).where(eq(feeds.id, id)).run();
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: "Failed to delete feed" });
   }
 });
 
-router.post("/import", async (req, res) => {
+router.post("/import", async (req: AuthRequest, res: Response) => {
   try {
-    const importData = req.body;
+    const { feeds: importData, workspaceId } = req.body;
     if (!Array.isArray(importData)) {
-      res.status(400).json({ error: "Invalid format: expected an array of feeds" });
+      res.status(400).json({ error: "Invalid format: expected feeds array" });
+      return;
+    }
+    if (!workspaceId) {
+      res.status(400).json({ error: "workspaceId is required" });
+      return;
+    }
+
+    const userWorkspaceIds = getUserWorkspaceIds(req.userId!);
+    if (!userWorkspaceIds.includes(workspaceId)) {
+      res.status(403).json({ error: "Access denied to this workspace" });
       return;
     }
 
@@ -164,7 +253,8 @@ router.post("/import", async (req, res) => {
       }
 
       try {
-        await db.insert(feeds).values({
+        db.insert(feeds).values({
+          workspaceId,
           name: parsed.data.name,
           url: parsed.data.url,
           profileImage: parsed.data.profileImage,
@@ -174,7 +264,7 @@ router.post("/import", async (req, res) => {
           webhookName: parsed.data.webhookName,
           messageTemplate: parsed.data.messageTemplate,
           enabled: parsed.data.enabled,
-        });
+        }).run();
         imported++;
       } catch (error: unknown) {
         if (error instanceof Error && error.message.includes("UNIQUE constraint failed")) {
@@ -192,7 +282,7 @@ router.post("/import", async (req, res) => {
   }
 });
 
-router.post("/preview-rss", async (req, res) => {
+router.post("/preview-rss", async (req: AuthRequest, res: Response) => {
   try {
     const { url } = req.body;
     if (!url || typeof url !== "string") {
@@ -258,10 +348,11 @@ router.post("/preview-rss", async (req, res) => {
   }
 });
 
-router.get("/:id/preview", async (req, res) => {
+router.get("/:id/preview", async (req: AuthRequest, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
-    const feed = await db.select().from(feeds).where(eq(feeds.id, id)).get();
+    const idParam = req.params.id;
+    const id = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    const feed = db.select().from(feeds).where(eq(feeds.id, id)).get();
 
     if (!feed) {
       res.status(404).json({ error: "Feed not found" });
@@ -312,10 +403,11 @@ router.get("/:id/preview", async (req, res) => {
   }
 });
 
-router.post("/:id/test", async (req, res) => {
+router.post("/:id/test", async (req: AuthRequest, res: Response) => {
   try {
-    const id = parseInt(req.params.id);
-    const feed = await db.select().from(feeds).where(eq(feeds.id, id)).get();
+    const idParam = req.params.id;
+    const id = parseInt(Array.isArray(idParam) ? idParam[0] : idParam);
+    const feed = db.select().from(feeds).where(eq(feeds.id, id)).get();
 
     if (!feed) {
       res.status(404).json({ error: "Feed not found" });

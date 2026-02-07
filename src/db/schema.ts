@@ -1,6 +1,39 @@
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
+export const users = sqliteTable("users", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  isAdmin: integer("is_admin", { mode: "boolean" }).notNull().default(false),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const workspaces = sqliteTable("workspaces", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  name: text("name").notNull(),
+  ownerId: integer("owner_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+});
+
+export const workspaceMembers = sqliteTable("workspace_members", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  workspaceId: integer("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  role: text("role").notNull().default("member"),
+});
+
 export const feeds = sqliteTable("feeds", {
+  workspaceId: integer("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
   url: text("url").notNull().unique(),
@@ -34,13 +67,24 @@ export const posts = sqliteTable("posts", {
     .$defaultFn(() => new Date()),
 });
 
-export const settings = sqliteTable("settings", {
-  key: text("key").primaryKey(),
-  value: text("value"),
+export const workspaceSettings = sqliteTable("workspace_settings", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  workspaceId: integer("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  discordClientId: text("discord_client_id"),
+  discordClientSecret: text("discord_client_secret"),
+  checkIntervalMinutes: integer("check_interval_minutes").notNull().default(10),
 });
 
+export type WorkspaceSettings = typeof workspaceSettings.$inferSelect;
+
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
+export type Workspace = typeof workspaces.$inferSelect;
+export type NewWorkspace = typeof workspaces.$inferInsert;
+export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
 export type Feed = typeof feeds.$inferSelect;
 export type NewFeed = typeof feeds.$inferInsert;
 export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
-export type Setting = typeof settings.$inferSelect;

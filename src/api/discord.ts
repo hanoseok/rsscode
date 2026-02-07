@@ -1,10 +1,13 @@
-import { Router } from "express";
+import { Router, Response } from "express";
 import { db } from "../db/index.js";
 import { feeds } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { getDiscordCredentials } from "./settings.js";
+import { requireAuth, AuthRequest } from "../middleware/auth.js";
 
 const router = Router();
+
+router.use(requireAuth);
 
 const DISCORD_API = "https://discord.com/api/v10";
 
@@ -43,7 +46,13 @@ function getRedirectUri(req: { protocol: string; get: (name: string) => string |
 }
 
 router.get("/authorize", async (req, res) => {
-  const { clientId } = await getDiscordCredentials();
+  const workspaceId = req.query.workspaceId as string | undefined;
+  if (!workspaceId) {
+    res.redirect("/?error=workspace_required");
+    return;
+  }
+
+  const { clientId } = await getDiscordCredentials(parseInt(workspaceId));
   if (!clientId) {
     res.redirect("/?error=discord_not_configured");
     return;
@@ -51,7 +60,7 @@ router.get("/authorize", async (req, res) => {
 
   const feedId = req.query.feedId as string | undefined;
   const redirectUri = encodeURIComponent(getRedirectUri(req));
-  const state = Buffer.from(JSON.stringify({ feedId: feedId || null })).toString("base64url");
+  const state = Buffer.from(JSON.stringify({ feedId: feedId || null, workspaceId })).toString("base64url");
 
   const authUrl =
     `https://discord.com/oauth2/authorize?` +
@@ -78,15 +87,22 @@ router.get("/callback", async (req, res) => {
   }
 
   let feedId: string | null;
+  let workspaceId: string;
   try {
     const decoded = JSON.parse(Buffer.from(state as string, "base64url").toString());
     feedId = decoded.feedId;
+    workspaceId = decoded.workspaceId;
   } catch {
     res.redirect("/?error=invalid_state");
     return;
   }
 
-  const { clientId, clientSecret } = await getDiscordCredentials();
+  if (!workspaceId) {
+    res.redirect("/?error=workspace_required");
+    return;
+  }
+
+  const { clientId, clientSecret } = await getDiscordCredentials(parseInt(workspaceId));
 
   if (!clientId || !clientSecret) {
     res.redirect("/?error=discord_not_configured");

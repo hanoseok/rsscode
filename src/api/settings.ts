@@ -1,110 +1,117 @@
-import { Router } from "express";
+import { Router, Response } from "express";
 import { db } from "../db/index.js";
-import { settings } from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { workspaceSettings, workspaces, workspaceMembers } from "../db/schema.js";
+import { eq, or } from "drizzle-orm";
 import { z } from "zod";
-import { restartScheduler } from "../services/scheduler.js";
+import { requireAuth, AuthRequest } from "../middleware/auth.js";
 
 const router = Router();
 
-const SETTING_KEYS = [
-  "discord_client_id",
-  "discord_client_secret",
-  "check_interval_minutes",
-] as const;
+router.use(requireAuth);
 
 const updateSettingsSchema = z.object({
-  discord_client_id: z.string().optional(),
-  discord_client_secret: z.string().optional(),
+  discord_client_id: z.string().optional().nullable(),
+  discord_client_secret: z.string().optional().nullable(),
   check_interval_minutes: z.number().min(1).max(1440).optional(),
 });
 
-export async function getSetting(key: string): Promise<string | null> {
-  const row = await db.select().from(settings).where(eq(settings.key, key)).get();
-  return row?.value ?? null;
+function getUserWorkspaceIds(userId: number): number[] {
+  const owned = db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.ownerId, userId)).all();
+  const member = db.select({ workspaceId: workspaceMembers.workspaceId }).from(workspaceMembers).where(eq(workspaceMembers.userId, userId)).all();
+  const ids = new Set([...owned.map(w => w.id), ...member.map(m => m.workspaceId)]);
+  return Array.from(ids);
 }
 
-export async function getDiscordCredentials(): Promise<{
+export async function getWorkspaceSettings(workspaceId: number) {
+  const settings = db.select().from(workspaceSettings).where(eq(workspaceSettings.workspaceId, workspaceId)).get();
+  return settings || { workspaceId, discordClientId: null, discordClientSecret: null, checkIntervalMinutes: 10 };
+}
+
+export async function getDiscordCredentials(workspaceId: number): Promise<{
   clientId: string | null;
   clientSecret: string | null;
 }> {
-  const clientId = process.env.DISCORD_CLIENT_ID || await getSetting("discord_client_id");
-  const clientSecret = process.env.DISCORD_CLIENT_SECRET || await getSetting("discord_client_secret");
-  return { clientId, clientSecret };
+  const settings = await getWorkspaceSettings(workspaceId);
+  return {
+    clientId: settings.discordClientId,
+    clientSecret: settings.discordClientSecret,
+  };
 }
 
-export function getCheckIntervalMinutes(): number {
-  const envInterval = process.env.CHECK_INTERVAL_MINUTES;
-  if (envInterval) {
-    const parsed = parseInt(envInterval, 10);
-    if (!isNaN(parsed) && parsed >= 1 && parsed <= 1440) {
-      return parsed;
-    }
-  }
-  return 0;
-}
-
-router.get("/", async (_req, res) => {
+router.get("/", async (req: AuthRequest, res: Response) => {
   try {
-    const rows = await db.select().from(settings);
-    const result: Record<string, string | null> = {};
-
-    const envClientId = process.env.DISCORD_CLIENT_ID;
-    const envClientSecret = process.env.DISCORD_CLIENT_SECRET;
-    const envInterval = process.env.CHECK_INTERVAL_MINUTES;
-
-    for (const key of SETTING_KEYS) {
-      if (key === "discord_client_id" && envClientId) {
-        result[key] = envClientId;
-      } else if (key === "discord_client_secret" && envClientSecret) {
-        result[key] = "••••••••";
-      } else if (key === "check_interval_minutes" && envInterval) {
-        result[key] = envInterval;
-      } else {
-        const row = rows.find((r) => r.key === key);
-        if (key === "discord_client_secret" && row?.value) {
-          result[key] = "••••••••";
-        } else {
-          result[key] = row?.value ?? null;
-        }
-      }
+    const workspaceId = req.query.workspaceId ? parseInt(req.query.workspaceId as string) : undefined;
+    
+    if (!workspaceId) {
+      res.status(400).json({ error: "workspaceId is required" });
+      return;
     }
 
-    result["_env_configured"] = (envClientId && envClientSecret) ? "true" : "false";
+    const userWorkspaceIds = getUserWorkspaceIds(req.userId!);
+    if (!userWorkspaceIds.includes(workspaceId)) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
 
-    res.json(result);
+    const settings = await getWorkspaceSettings(workspaceId);
+
+    res.json({
+      discord_client_id: settings.discordClientId || "",
+      discord_client_secret: settings.discordClientSecret ? "••••••••" : "",
+      check_interval_minutes: settings.checkIntervalMinutes || 10,
+    });
   } catch {
     res.status(500).json({ error: "Failed to fetch settings" });
   }
 });
 
-router.put("/", async (req, res) => {
+router.put("/", async (req: AuthRequest, res: Response) => {
   try {
-    const parsed = updateSettingsSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ error: parsed.error.errors });
+    const workspaceId = req.query.workspaceId ? parseInt(req.query.workspaceId as string) : req.body.workspaceId;
+    
+    if (!workspaceId) {
+      res.status(400).json({ error: "workspaceId is required" });
       return;
     }
 
-    let intervalChanged = false;
-
-    for (const [key, value] of Object.entries(parsed.data)) {
-      if (value === undefined) continue;
-      if (key === "discord_client_secret" && value === "••••••••") continue;
-
-      const stringValue = String(value);
-      await db
-        .insert(settings)
-        .values({ key, value: stringValue })
-        .onConflictDoUpdate({ target: settings.key, set: { value: stringValue } });
-
-      if (key === "check_interval_minutes") {
-        intervalChanged = true;
-      }
+    const userWorkspaceIds = getUserWorkspaceIds(req.userId!);
+    if (!userWorkspaceIds.includes(workspaceId)) {
+      res.status(403).json({ error: "Access denied" });
+      return;
     }
 
-    if (intervalChanged) {
-      await restartScheduler();
+    const parsed = updateSettingsSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.errors[0]?.message || "Invalid input" });
+      return;
+    }
+
+    const existingSettings = db.select().from(workspaceSettings).where(eq(workspaceSettings.workspaceId, workspaceId)).get();
+
+    const updateData: Record<string, unknown> = {};
+    
+    if (parsed.data.discord_client_id !== undefined) {
+      updateData.discordClientId = parsed.data.discord_client_id || null;
+    }
+    if (parsed.data.discord_client_secret !== undefined && parsed.data.discord_client_secret !== "••••••••") {
+      updateData.discordClientSecret = parsed.data.discord_client_secret || null;
+    }
+    if (parsed.data.check_interval_minutes !== undefined) {
+      updateData.checkIntervalMinutes = parsed.data.check_interval_minutes;
+    }
+
+    if (existingSettings) {
+      db.update(workspaceSettings)
+        .set(updateData)
+        .where(eq(workspaceSettings.workspaceId, workspaceId))
+        .run();
+    } else {
+      db.insert(workspaceSettings).values({
+        workspaceId,
+        discordClientId: parsed.data.discord_client_id || null,
+        discordClientSecret: parsed.data.discord_client_secret || null,
+        checkIntervalMinutes: parsed.data.check_interval_minutes || 10,
+      }).run();
     }
 
     res.json({ success: true });

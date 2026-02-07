@@ -5,10 +5,13 @@
 RSScode - RSS to Discord notification service built with TypeScript, Express.js, and SQLite.
 
 ### Key Features
+- User authentication (session-based login/register)
+- Workspace-based feed isolation (per-workspace Discord settings & scheduler)
 - Multi-feed management with per-feed Discord channels
 - Customizable message templates with drag-and-drop editor
-- Discord OAuth2 integration
+- Discord OAuth2 integration (per-workspace credentials)
 - Smart notifications (skip existing posts on first check)
+- Admin user management
 
 ## Tech Stack
 
@@ -66,16 +69,23 @@ docker-compose up -d
 src/
 ├── index.ts              # Express app entry point
 ├── api/                  # Route handlers
+│   ├── auth.ts           # /api/auth (login, register, logout, me)
+│   ├── workspaces.ts     # /api/workspaces CRUD
+│   ├── admin.ts          # /api/admin (user management, admin only)
 │   ├── feeds.ts          # /api/feeds CRUD
 │   ├── discord.ts        # /api/discord OAuth
-│   └── settings.ts       # /api/settings
+│   └── settings.ts       # /api/settings (per-workspace)
+├── middleware/
+│   └── auth.ts           # requireAuth, requireAdmin middleware
+├── utils/
+│   └── auth.ts           # hashPassword, verifyPassword (bcryptjs)
 ├── db/
 │   ├── schema.ts         # Drizzle table definitions
 │   └── index.ts          # Database connection + migrations
 ├── services/
 │   ├── discord.ts        # Discord webhook sender
 │   ├── rss.ts            # RSS feed parser
-│   └── scheduler.ts      # Cron job for RSS checks
+│   └── scheduler.ts      # Per-workspace cron schedulers
 ├── types/
 │   └── index.ts          # Zod schemas for validation
 └── test/
@@ -154,6 +164,8 @@ try {
 | 201 | Successful POST (created) |
 | 204 | Successful DELETE (no content) |
 | 400 | Validation error, bad request |
+| 401 | Authentication required |
+| 403 | Forbidden (not owner/admin, wrong workspace) |
 | 404 | Resource not found |
 | 409 | Conflict (duplicate) |
 | 500 | Internal server error |

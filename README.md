@@ -4,16 +4,18 @@ RSS 피드를 모니터링하여 새 글을 Discord 채널로 자동 전송하�
 
 ## Features
 
+- **사용자 인증**: 회원가입 / 로그인 (세션 기반)
+- **워크스페이스**: 팀 또는 용도별로 피드를 분리 관리
+- **워크스페이스별 Discord 설정**: 워크스페이스마다 독립된 Discord Client ID/Secret, 체크 주기
 - **다중 피드 관리**: 여러 RSS 피드를 등록하고 관리
 - **피드별 Discord 채널**: 각 피드마다 다른 Discord 채널로 알림 전송 가능
 - **Discord OAuth2 연동**: Webhook URL 직접 입력 없이 OAuth로 간편 연결
-- **피드 활성화/비활성화**: 토글로 피드별 알림 on/off
-- **테스트 전송**: 미리보기 후 Discord로 테스트 전송
 - **메시지 템플릿**: 피드별 메시지 포맷 커스터마이징 (드래그 앤 드롭 에디터)
-- **자동 스케줄링**: 설정 가능한 주기로 새 글 확인 (기본 10분)
+- **자동 스케줄링**: 워크스페이스별 설정 가능한 주기로 새 글 확인 (기본 10분)
 - **스마트 알림**: 첫 연결 시 기존 글은 저장만, 새 글부터 알림
 - **피드 내보내기/가져오기**: JSON으로 피드 설정 백업 및 복원
-- **웹 UI**: 다크 테마의 관리자 인터페이스
+- **관리자 기능**: 사용자 관리, 권한 설정
+- **웹 UI**: 다크 테마, LNB(왼쪽 네비게이션) 기반 관리자 인터페이스
 - **Docker 지원**: 간편한 배포
 
 ## Quick Start
@@ -23,8 +25,8 @@ RSS 피드를 모니터링하여 새 글을 Discord 채널로 자동 전송하�
 1. [Discord Developer Portal](https://discord.com/developers/applications) 접속
 2. **New Application** 클릭 → 이름 입력 → Create
 3. 좌측 메뉴에서 **OAuth2 → General** 클릭
-4. **Client ID** 복사 (나중에 사용)
-5. **Client Secret** → Reset Secret → 복사 (나중에 사용)
+4. **Client ID** 복사
+5. **Client Secret** → Reset Secret → 복사
 6. **Redirects** 섹션에서 **Add Redirect** 클릭:
    ```
    https://your-domain.com/api/discord/callback
@@ -39,9 +41,7 @@ docker run -d \
   --name rsscode \
   -p 3000:3000 \
   -v rsscode_data:/data \
-  -e DISCORD_CLIENT_ID=your_client_id \
-  -e DISCORD_CLIENT_SECRET=your_client_secret \
-  -e CHECK_INTERVAL_MINUTES=10 \
+  -e SESSION_SECRET=your-random-secret-key \
   hanoseok/rsscode:latest
 ```
 
@@ -57,9 +57,7 @@ services:
     volumes:
       - rsscode_data:/data
     environment:
-      - DISCORD_CLIENT_ID=your_client_id
-      - DISCORD_CLIENT_SECRET=your_client_secret
-      - CHECK_INTERVAL_MINUTES=10
+      - SESSION_SECRET=your-random-secret-key
 
 volumes:
   rsscode_data:
@@ -72,12 +70,32 @@ docker-compose up -d
 ### 3. 사용하기
 
 1. `https://your-domain.com` 접속
-2. **Add Feed** 버튼 클릭
-3. **Connect** 버튼으로 Discord 채널 연결
-4. RSS 피드 이름과 URL 입력
-5. **Add Feed** 클릭
-6. **Test** 버튼으로 테스트 메시지 전송 (첫 알림 활성화)
-7. 토글로 피드 활성화
+2. 로그인 (기본 관리자: `admin` / `admin`)
+3. 좌측 LNB에서 워크스페이스 선택
+4. **Settings**에서 Discord Client ID/Secret 입력
+5. **Add Feed** 클릭 → RSS URL 입력
+6. **Connect** 버튼으로 Discord 채널 연결
+7. **Test** 버튼으로 테스트 메시지 전송
+8. 토글로 피드 활성화
+
+> 첫 실행 시 기본 관리자 계정(`admin`/`admin`)과 기본 워크스페이스가 자동 생성됩니다. 비밀번호를 반드시 변경하세요.
+
+## 인증 및 워크스페이스
+
+### 사용자 인증
+
+- 세션 기반 인증 (쿠키, 7일 유효)
+- 회원가입 시 기본 워크스페이스 자동 생성
+- 관리자(admin)는 사용자 관리 가능 (비밀번호 초기화, 권한 변경, 삭제)
+
+### 워크스페이스
+
+워크스페이스는 피드와 Discord 설정을 묶는 단위입니다.
+
+- 각 워크스페이스는 독립된 Discord Client ID/Secret, 체크 주기를 가짐
+- 워크스페이스 소유자(owner)와 멤버(member)가 접근 가능
+- 피드는 반드시 하나의 워크스페이스에 속함
+- 워크스페이스 삭제 시 하위 피드와 설정 모두 삭제 (cascade)
 
 ## 메시지 템플릿
 
@@ -102,19 +120,6 @@ docker-compose up -d
 {description}
 ```
 
-### 예시
-
-```
-[{title}]({link})
-{description:200}
-```
-
-결과:
-```
-스마트스토어센터 Oracle에서 MySQL로...  ← 클릭 가능
-본문 미리보기 200자까지...
-```
-
 ## 알림 동작 방식
 
 | 상황 | 동작 |
@@ -128,13 +133,11 @@ docker-compose up -d
 
 | 변수 | 설명 | 기본값 |
 |------|------|--------|
-| `DISCORD_CLIENT_ID` | Discord OAuth2 Client ID | - |
-| `DISCORD_CLIENT_SECRET` | Discord OAuth2 Client Secret | - |
-| `CHECK_INTERVAL_MINUTES` | RSS 체크 주기 (분) | `10` |
+| `SESSION_SECRET` | 세션 암호화 키 (프로덕션 필수) | `rsscode-secret-change-in-production` |
 | `DATABASE_URL` | SQLite DB 경로 | `/data/rsscode.db` |
 | `PORT` | 서버 포트 | `3000` |
 
-> 환경변수가 설정되면 웹 UI의 Settings보다 우선 적용됩니다.
+> Discord Client ID/Secret, 체크 주기는 웹 UI의 워크스페이스별 Settings에서 설정합니다.
 
 ## Discord OAuth 설정 가이드
 
@@ -168,9 +171,7 @@ Discord Developer Portal에서 반드시 **정확한 Redirect URI**를 등록해
 3. **포트 설정**: 로컬 포트 → 3000
 4. **볼륨**: `/data` 폴더 마운트
 5. **환경변수** 추가:
-   - `DISCORD_CLIENT_ID`
-   - `DISCORD_CLIENT_SECRET`
-   - `CHECK_INTERVAL_MINUTES`
+   - `SESSION_SECRET`
 
 ### 역방향 프록시 설정
 
@@ -188,41 +189,80 @@ Discord Developer Portal에서 반드시 **정확한 Redirect URI**를 등록해
 ## Development
 
 ```bash
-# 의존성 설치
-npm install
-
-# 개발 서버 (hot reload)
-npm run dev
-
-# 테스트
-npm test
-
-# 빌드
-npm run build
+npm install       # 의존성 설치
+npm run dev       # 개발 서버 (hot reload)
+npm test          # 테스트
+npm run build     # 빌드
+npm run start     # 프로덕션 실행
 ```
 
 ## API
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/feeds` | 피드 목록 |
-| GET | `/api/feeds/:id` | 피드 상세 조회 |
-| POST | `/api/feeds` | 피드 등록 |
-| PUT | `/api/feeds/:id` | 피드 수정 |
-| DELETE | `/api/feeds/:id` | 피드 삭제 |
-| GET | `/api/feeds/export` | 피드 JSON 내보내기 |
-| POST | `/api/feeds/import` | 피드 JSON 가져오기 |
-| POST | `/api/feeds/preview-rss` | RSS 필드 미리보기 |
-| GET | `/api/feeds/:id/preview` | 테스트 메시지 미리보기 |
-| POST | `/api/feeds/:id/test` | 테스트 전송 |
-| GET | `/api/discord/authorize` | Discord OAuth 시작 |
-| GET | `/api/discord/callback` | Discord OAuth 콜백 |
-| GET | `/api/discord/channels` | 연결된 채널 목록 |
-| DELETE | `/api/discord/:feedId` | Discord 연결 해제 |
-| GET | `/api/settings` | 설정 조회 |
-| PUT | `/api/settings` | 설정 저장 |
-| POST | `/api/check` | 수동 RSS 체크 |
-| GET | `/api/health` | 헬스체크 |
+### 인증 (Auth)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/auth/login` | - | 로그인 |
+| POST | `/api/auth/register` | - | 회원가입 |
+| POST | `/api/auth/logout` | O | 로그아웃 |
+| GET | `/api/auth/me` | O | 현재 사용자 정보 |
+
+### 워크스페이스 (Workspaces)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/workspaces` | O | 내 워크스페이스 목록 |
+| POST | `/api/workspaces` | O | 워크스페이스 생성 |
+| GET | `/api/workspaces/:id` | O | 워크스페이스 상세 |
+| PUT | `/api/workspaces/:id` | O | 워크스페이스 수정 |
+| DELETE | `/api/workspaces/:id` | O | 워크스페이스 삭제 |
+
+### 피드 (Feeds)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/feeds?workspaceId=N` | O | 피드 목록 |
+| GET | `/api/feeds/:id` | O | 피드 상세 조회 |
+| POST | `/api/feeds` | O | 피드 등록 |
+| PUT | `/api/feeds/:id` | O | 피드 수정 |
+| DELETE | `/api/feeds/:id` | O | 피드 삭제 |
+| GET | `/api/feeds/export?workspaceId=N` | O | 피드 JSON 내보내기 |
+| POST | `/api/feeds/import` | O | 피드 JSON 가져오기 |
+| POST | `/api/feeds/preview-rss` | O | RSS 필드 미리보기 |
+| GET | `/api/feeds/:id/preview` | O | 테스트 메시지 미리보기 |
+| POST | `/api/feeds/:id/test` | O | 테스트 전송 |
+
+### Discord
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/discord/authorize?workspaceId=N&feedId=N` | O | Discord OAuth 시작 |
+| GET | `/api/discord/callback` | O | Discord OAuth 콜백 |
+| GET | `/api/discord/channels` | O | 연결된 채널 목록 |
+| DELETE | `/api/discord/:feedId` | O | Discord 연결 해제 |
+
+### 설정 (Settings)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/settings?workspaceId=N` | O | 워크스페이스 설정 조회 |
+| PUT | `/api/settings?workspaceId=N` | O | 워크스페이스 설정 저장 |
+
+### 관리자 (Admin)
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/api/admin/users` | Admin | 전체 사용자 목록 |
+| PUT | `/api/admin/users/:id` | Admin | 사용자 정보 수정 (권한) |
+| PUT | `/api/admin/users/:id/password` | Admin | 사용자 비밀번호 초기화 |
+| DELETE | `/api/admin/users/:id` | Admin | 사용자 삭제 |
+
+### 기타
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/api/check` | O | 수동 RSS 체크 |
+| GET | `/api/health` | - | 헬스체크 |
 
 ## License
 

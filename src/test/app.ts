@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import { Router } from "express";
 import { testDb } from "./setup.js";
-import { feeds, settings } from "../db/schema.js";
+import { feeds, workspaceSettings } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 
@@ -63,36 +63,48 @@ feedsRouter.delete("/:id", async (req, res) => {
 
 const settingsRouter = Router();
 
-settingsRouter.get("/", async (_req, res) => {
-  const rows = await testDb.select().from(settings);
-  const result: Record<string, string | null> = {};
+settingsRouter.get("/", async (req, res) => {
+  const workspaceId = req.query.workspaceId ? parseInt(req.query.workspaceId as string) : 1;
+  const settings = await testDb.select().from(workspaceSettings).where(eq(workspaceSettings.workspaceId, workspaceId)).get();
   
-  for (const row of rows) {
-    if (row.key === "discord_client_secret" && row.value) {
-      result[row.key] = "••••••••";
-    } else {
-      result[row.key] = row.value;
-    }
+  if (!settings) {
+    res.json({
+      discord_client_id: "",
+      discord_client_secret: "",
+      check_interval_minutes: 10,
+    });
+    return;
   }
-  
-  res.json(result);
+
+  res.json({
+    discord_client_id: settings.discordClientId || "",
+    discord_client_secret: settings.discordClientSecret ? "••••••••" : "",
+    check_interval_minutes: settings.checkIntervalMinutes || 10,
+  });
 });
 
 settingsRouter.put("/", async (req, res) => {
-  const { discord_client_id, discord_client_secret } = req.body;
+  const workspaceId = req.query.workspaceId ? parseInt(req.query.workspaceId as string) : req.body.workspaceId || 1;
+  const { discord_client_id, discord_client_secret, check_interval_minutes } = req.body;
 
-  if (discord_client_id !== undefined) {
-    await testDb
-      .insert(settings)
-      .values({ key: "discord_client_id", value: discord_client_id })
-      .onConflictDoUpdate({ target: settings.key, set: { value: discord_client_id } });
-  }
+  const existing = await testDb.select().from(workspaceSettings).where(eq(workspaceSettings.workspaceId, workspaceId)).get();
 
-  if (discord_client_secret !== undefined && discord_client_secret !== "••••••••") {
-    await testDb
-      .insert(settings)
-      .values({ key: "discord_client_secret", value: discord_client_secret })
-      .onConflictDoUpdate({ target: settings.key, set: { value: discord_client_secret } });
+  if (existing) {
+    const updateData: Record<string, unknown> = {};
+    if (discord_client_id !== undefined) updateData.discordClientId = discord_client_id;
+    if (discord_client_secret !== undefined && discord_client_secret !== "••••••••") {
+      updateData.discordClientSecret = discord_client_secret;
+    }
+    if (check_interval_minutes !== undefined) updateData.checkIntervalMinutes = check_interval_minutes;
+    
+    await testDb.update(workspaceSettings).set(updateData).where(eq(workspaceSettings.workspaceId, workspaceId));
+  } else {
+    await testDb.insert(workspaceSettings).values({
+      workspaceId,
+      discordClientId: discord_client_id || null,
+      discordClientSecret: discord_client_secret || null,
+      checkIntervalMinutes: check_interval_minutes || 10,
+    });
   }
 
   res.json({ success: true });

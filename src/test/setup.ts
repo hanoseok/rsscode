@@ -10,8 +10,32 @@ export const testDb = drizzle(sqlite, { schema });
 
 beforeAll(() => {
   sqlite.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      is_admin INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS workspaces (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      owner_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS workspace_members (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      role TEXT NOT NULL DEFAULT 'member',
+      UNIQUE(workspace_id, user_id)
+    );
+
     CREATE TABLE IF NOT EXISTS feeds (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      workspace_id INTEGER REFERENCES workspaces(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       url TEXT NOT NULL UNIQUE,
       profile_image TEXT,
@@ -39,9 +63,12 @@ beforeAll(() => {
       UNIQUE(feed_id, guid)
     );
 
-    CREATE TABLE IF NOT EXISTS settings (
-      key TEXT PRIMARY KEY,
-      value TEXT
+    CREATE TABLE IF NOT EXISTS workspace_settings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+      discord_client_id TEXT,
+      discord_client_secret TEXT,
+      check_interval_minutes INTEGER NOT NULL DEFAULT 10
     );
   `);
 });
@@ -49,7 +76,10 @@ beforeAll(() => {
 beforeEach(() => {
   sqlite.exec("DELETE FROM posts");
   sqlite.exec("DELETE FROM feeds");
-  sqlite.exec("DELETE FROM settings");
+  sqlite.exec("DELETE FROM workspace_settings");
+  sqlite.exec("DELETE FROM workspace_members");
+  sqlite.exec("DELETE FROM workspaces");
+  sqlite.exec("DELETE FROM users");
 });
 
 afterAll(() => {

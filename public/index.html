@@ -6,40 +6,484 @@
   <title>RSScode</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-tertiary: #151e31;
+      --bg-hover: #334155;
+      --border-color: #334155;
+      --text-primary: #f8fafc;
+      --text-secondary: #e2e8f0;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --success: #059669;
+      --danger: #dc2626;
+      --danger-hover: #b91c1c;
+      --discord: #5865f2;
+      --lnb-width: 240px;
+    }
+    
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f172a;
-      color: #e2e8f0;
+      background: var(--bg-primary);
+      color: var(--text-secondary);
       min-height: 100vh;
-      padding: 2rem;
     }
-    .container { max-width: 900px; margin: 0 auto; }
-    h1 { font-size: 1.75rem; margin-bottom: 2rem; color: #f8fafc; }
+    
+    /* ============================================
+       AUTH SCREENS (Login & Register)
+       ============================================ */
+    .auth-container {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      background: linear-gradient(135deg, var(--bg-primary) 0%, #1a1f35 100%);
+    }
+    
+    .auth-card {
+      background: var(--bg-secondary);
+      border-radius: 16px;
+      padding: 2.5rem;
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+    
+    .auth-logo {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .auth-logo h1 {
+      font-size: 2rem;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+    
+    .auth-logo p {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    
+    .auth-form .form-group {
+      margin-bottom: 1.25rem;
+    }
+    
+    .auth-form label {
+      display: block;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+    
+    .auth-form input {
+      width: 100%;
+      padding: 0.875rem 1rem;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      transition: border-color 0.2s;
+    }
+    
+    .auth-form input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+    
+    .auth-form input.error {
+      border-color: var(--danger);
+    }
+    
+    .auth-error {
+      color: #f87171;
+      font-size: 0.8rem;
+      margin-top: 0.25rem;
+      display: none;
+    }
+    
+    .auth-error.show {
+      display: block;
+    }
+    
+    .auth-form .btn-auth {
+      width: 100%;
+      padding: 0.875rem;
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 0.5rem;
+    }
+    
+    .auth-form .btn-auth:hover {
+      background: var(--accent-hover);
+    }
+    
+    .auth-form .btn-auth:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .auth-footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border-color);
+    }
+    
+    .auth-footer a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    
+    .auth-footer a:hover {
+      text-decoration: underline;
+    }
+    
+    .auth-footer span {
+      color: var(--text-muted);
+    }
+    
+    /* ============================================
+       MAIN LAYOUT (After Login)
+       ============================================ */
+    .app-layout {
+      display: flex;
+      min-height: 100vh;
+    }
+    
+    /* Left Navigation Bar */
+    .lnb {
+      width: var(--lnb-width);
+      background: var(--bg-tertiary);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      position: fixed;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      z-index: 100;
+      transition: transform 0.3s ease;
+    }
+    
+    .lnb-header {
+      padding: 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .lnb-brand {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+    
+    .lnb-user {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    
+    .lnb-user-info {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 0;
+    }
+    
+    .lnb-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: white;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    
+    .lnb-username {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .btn-logout {
+      padding: 0.4rem 0.75rem;
+      background: transparent;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    
+    .btn-logout:hover {
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+    }
+    
+    /* Workspaces Section */
+    .lnb-section {
+      padding: 1rem 0;
+      flex: 1;
+      overflow-y: auto;
+    }
+    
+    .lnb-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    .lnb-section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .btn-new-workspace {
+      padding: 0.25rem 0.5rem;
+      background: var(--accent);
+      border: none;
+      border-radius: 4px;
+      color: white;
+      font-size: 0.7rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .btn-new-workspace:hover {
+      background: var(--accent-hover);
+    }
+    
+    .workspace-list {
+      padding: 0 0.5rem;
+    }
+    
+    .workspace-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.625rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 0.15s;
+      color: var(--text-muted);
+    }
+    
+    .workspace-item:hover {
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+    }
+    
+    .workspace-item.active {
+      background: var(--accent);
+      color: white;
+    }
+    
+    .workspace-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+    }
+    
+    .workspace-name {
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .workspace-count {
+      margin-left: auto;
+      font-size: 0.75rem;
+      background: var(--bg-primary);
+      padding: 0.125rem 0.4rem;
+      border-radius: 10px;
+      color: var(--text-dim);
+    }
+    
+    .workspace-item.active .workspace-count {
+      background: rgba(255,255,255,0.2);
+      color: white;
+    }
+    
+    /* Admin Section */
+    .lnb-admin {
+      padding: 1rem 0;
+      border-top: 1px solid var(--border-color);
+    }
+    
+    .admin-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.625rem 1.25rem;
+      cursor: pointer;
+      transition: background 0.15s;
+      color: var(--text-muted);
+    }
+    
+    .admin-item:hover {
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+    }
+    
+    .admin-item.active {
+      background: var(--bg-hover);
+      color: var(--accent);
+    }
+    
+    /* Mobile LNB Toggle */
+    .lnb-toggle {
+      display: none;
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 101;
+      padding: 0.5rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    
+    .lnb-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 99;
+    }
+    
+    /* Main Content Area */
+    .main-content {
+      flex: 1;
+      margin-left: var(--lnb-width);
+      padding: 2rem;
+      min-height: 100vh;
+    }
+    
+    .container { 
+      max-width: 900px; 
+      margin: 0 auto; 
+    }
+    
+    h1 { 
+      font-size: 1.75rem; 
+      margin-bottom: 2rem; 
+      color: var(--text-primary); 
+    }
+    
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2rem;
+    }
+    
+    .page-header h1 {
+      margin-bottom: 0;
+    }
+    
+    .workspace-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+    
+    .workspace-badge strong {
+      color: var(--text-secondary);
+    }
+    
+    /* Cards */
     .card {
-      background: #1e293b;
+      background: var(--bg-secondary);
       border-radius: 12px;
       padding: 1.5rem;
       margin-bottom: 1.5rem;
-      border: 1px solid #334155;
+      border: 1px solid var(--border-color);
     }
-    .card h2 { font-size: 1rem; margin-bottom: 1rem; color: #94a3b8; display: flex; align-items: center; gap: 0.5rem; }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .card h2 { 
+      font-size: 1rem; 
+      margin-bottom: 1rem; 
+      color: var(--text-muted); 
+      display: flex; 
+      align-items: center; 
+      gap: 0.5rem; 
+    }
+    .card-header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      margin-bottom: 1rem; 
+    }
     .card-header h2 { margin-bottom: 0; }
+    
+    /* Form Elements */
     .form-group { margin-bottom: 1rem; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    label { display: block; font-size: 0.875rem; color: #94a3b8; margin-bottom: 0.5rem; }
+    label { 
+      display: block; 
+      font-size: 0.875rem; 
+      color: var(--text-muted); 
+      margin-bottom: 0.5rem; 
+    }
     input, select {
       width: 100%;
       padding: 0.75rem 1rem;
-      background: #0f172a;
-      border: 1px solid #334155;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
-      color: #e2e8f0;
+      color: var(--text-secondary);
       font-size: 0.9rem;
     }
-    input:focus, select:focus { outline: none; border-color: #6366f1; }
+    input:focus, select:focus { 
+      outline: none; 
+      border-color: var(--accent); 
+    }
     select { cursor: pointer; }
-    select option { background: #1e293b; }
+    select option { background: var(--bg-secondary); }
+    
+    /* Buttons */
     .btn {
       padding: 0.75rem 1.5rem;
       border: none;
@@ -53,47 +497,64 @@
       align-items: center;
       gap: 0.5rem;
     }
-    .btn-primary { background: #6366f1; color: white; }
-    .btn-primary:hover { background: #4f46e5; }
-    .btn-secondary { background: #334155; color: #e2e8f0; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary { background: var(--bg-hover); color: var(--text-secondary); }
     .btn-secondary:hover { background: #475569; }
-    .btn-danger { background: #dc2626; color: white; }
-    .btn-danger:hover { background: #b91c1c; }
-    .btn-discord { background: #5865f2; color: white; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-danger:hover { background: var(--danger-hover); }
+    .btn-discord { background: var(--discord); color: white; }
     .btn-discord:hover { background: #4752c4; }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
     .btn-sm { padding: 0.5rem 1rem; font-size: 0.8rem; }
     .required-mark { color: #ef4444; margin-left: 2px; }
     .actions { display: flex; gap: 0.75rem; margin-top: 1rem; flex-wrap: wrap; }
-    .feed-list { display: flex; flex-direction: column; gap: 1rem; max-height: 60vh; overflow-y: auto; }
+    
+    /* Feed List */
+    .feed-list { 
+      display: flex; 
+      flex-direction: column; 
+      gap: 1rem; 
+      max-height: 60vh; 
+      overflow-y: auto; 
+    }
     .feed-item {
       display: flex;
       align-items: flex-start;
       gap: 1rem;
       padding: 1rem;
-      background: #0f172a;
+      background: var(--bg-primary);
       border-radius: 8px;
-      border: 1px solid #334155;
+      border: 1px solid var(--border-color);
     }
     .feed-avatar {
       width: 48px;
       height: 48px;
       border-radius: 50%;
-      background: #334155;
+      background: var(--bg-hover);
       object-fit: cover;
       flex-shrink: 0;
     }
     .feed-info { flex: 1; min-width: 0; }
-    .feed-name { font-weight: 600; color: #f8fafc; margin-bottom: 0.25rem; }
+    .feed-name { font-weight: 600; color: var(--text-primary); margin-bottom: 0.25rem; }
     .feed-url {
       font-size: 0.8rem;
-      color: #64748b;
+      color: var(--text-dim);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .feed-meta { font-size: 0.75rem; color: #475569; margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.25rem; }
+    .feed-meta { 
+      font-size: 0.75rem; 
+      color: #475569; 
+      margin-top: 0.5rem; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 0.25rem; 
+    }
     .feed-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: flex-start; }
+    
+    /* Discord Status */
     .discord-status {
       display: inline-flex;
       align-items: center;
@@ -101,7 +562,7 @@
       font-size: 0.75rem;
       padding: 0.25rem 0.5rem;
       border-radius: 4px;
-      background: #334155;
+      background: var(--bg-hover);
     }
     .discord-status.connected { background: #065f46; color: #6ee7b7; }
     .discord-status.disconnected { background: #7f1d1d; color: #fca5a5; }
@@ -112,6 +573,8 @@
       border-radius: 50%;
       background: currentColor;
     }
+    
+    /* Toast Notifications */
     .toast {
       position: fixed;
       bottom: 2rem;
@@ -123,21 +586,28 @@
       animation: slideIn 0.3s ease;
       z-index: 1000;
     }
-    .toast.success { background: #059669; }
-    .toast.error { background: #dc2626; }
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--danger); }
     @keyframes slideIn {
       from { transform: translateX(100%); opacity: 0; }
       to { transform: translateX(0); opacity: 1; }
     }
+    
+    /* Utility Classes */
     .loading { opacity: 0.6; pointer-events: none; }
-    .empty { text-align: center; padding: 2rem; color: #64748b; }
-    .help-text { font-size: 0.75rem; color: #64748b; margin-top: 0.25rem; }
+    .empty { text-align: center; padding: 2rem; color: var(--text-dim); }
+    .help-text { font-size: 0.75rem; color: var(--text-dim); margin-top: 0.25rem; }
     .help-text a { color: #818cf8; }
+    .hidden { display: none !important; }
+    
+    /* Collapse */
     .collapse-content { display: none; }
     .collapse-content.show { display: block; }
     .collapse-toggle { cursor: pointer; user-select: none; }
     .collapse-toggle::after { content: ' ▼'; font-size: 0.7rem; }
     .collapse-toggle.collapsed::after { content: ' ▶'; }
+    
+    /* Modal */
     .modal-overlay {
       position: fixed;
       inset: 0;
@@ -152,18 +622,22 @@
     }
     .modal-overlay.show { opacity: 1; visibility: visible; }
     .modal {
-      background: #1e293b;
+      background: var(--bg-secondary);
       border-radius: 12px;
       padding: 1.5rem;
       width: 90%;
       max-width: 500px;
-      border: 1px solid #334155;
+      border: 1px solid var(--border-color);
       transform: scale(0.9);
       transition: transform 0.2s;
+      max-height: 90vh;
+      overflow-y: auto;
     }
     .modal-overlay.show .modal { transform: scale(1); }
-    .modal h3 { font-size: 1.1rem; margin-bottom: 1.5rem; color: #f8fafc; }
+    .modal h3 { font-size: 1.1rem; margin-bottom: 1.5rem; color: var(--text-primary); }
     .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem; }
+    
+    /* Channel Row */
     .channel-row { display: flex; gap: 0.5rem; align-items: center; }
     .image-input-row { display: flex; gap: 0.5rem; align-items: center; }
     .image-input-row input { flex: 1; }
@@ -172,18 +646,26 @@
       height: 40px;
       border-radius: 50%;
       object-fit: cover;
-      background: #334155;
+      background: var(--bg-hover);
       flex-shrink: 0;
     }
     .url-row { display: flex; gap: 0.5rem; align-items: center; }
     .url-row input { flex: 1; }
-    .tag-container { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.5rem; align-items: center; }
+    
+    /* Tags */
+    .tag-container { 
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 0.5rem; 
+      margin-top: 0.5rem; 
+      align-items: center; 
+    }
     .tag {
       display: inline-flex;
       align-items: center;
       gap: 0.25rem;
       padding: 0.35rem 0.75rem;
-      background: #334155;
+      background: var(--bg-hover);
       border-radius: 4px;
       font-size: 0.8rem;
       cursor: grab;
@@ -203,13 +685,15 @@
       background: #475569; 
       margin: 0 0.25rem;
     }
+    
+    /* Textarea */
     textarea {
       width: 100%;
       padding: 0.75rem 1rem;
-      background: #0f172a;
-      border: 2px solid #334155;
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
       border-radius: 8px;
-      color: #e2e8f0;
+      color: var(--text-secondary);
       font-size: 0.9rem;
       font-family: monospace;
       resize: vertical;
@@ -217,13 +701,15 @@
       transition: border-color 0.2s, background 0.2s;
       display: none;
     }
-    textarea:focus { outline: none; border-color: #6366f1; }
+    textarea:focus { outline: none; border-color: var(--accent); }
+    
+    /* Template Builder */
     .template-builder {
       width: 100%;
       min-height: 60px;
       padding: 0.5rem;
-      background: #0f172a;
-      border: 2px solid #334155;
+      background: var(--bg-primary);
+      border: 2px solid var(--border-color);
       border-radius: 8px;
       display: flex;
       flex-wrap: wrap;
@@ -233,8 +719,9 @@
       cursor: text;
       transition: border-color 0.2s;
     }
-    .template-builder:focus-within, .template-builder:focus { border-color: #6366f1; outline: none; }
-    .template-builder.drag-over { border-color: #6366f1; background: #1e293b; }
+    .template-builder:focus-within, .template-builder:focus { border-color: var(--accent); outline: none; }
+    .template-builder.drag-over { border-color: var(--accent); background: var(--bg-secondary); }
+    
     .template-chip {
       display: inline-flex;
       align-items: center;
@@ -250,10 +737,7 @@
     .template-chip:active { cursor: grabbing; }
     .template-chip * { pointer-events: none; }
     .template-chip .remove-chip { pointer-events: auto; }
-    .template-chip.field-chip {
-      background: #6366f1;
-      color: white;
-    }
+    .template-chip.field-chip { background: var(--accent); color: white; }
     .template-chip .limit-badge {
       background: rgba(0,0,0,0.3);
       padding: 0 0.3rem;
@@ -261,25 +745,10 @@
       font-size: 0.65rem;
       margin-left: 0.25rem;
     }
-    .template-chip.link-chip {
-      background: #1e40af;
-      color: #93c5fd;
-    }
-    .template-chip.text-chip {
-      background: transparent;
-      color: #94a3b8;
-      padding: 0.25rem 0.1rem;
-    }
-    .template-chip.newline-chip {
-      background: #334155;
-      color: #64748b;
-      font-size: 0.7rem;
-      padding: 0.15rem 0.4rem;
-    }
-    .template-linebreak {
-      flex-basis: 100%;
-      height: 0;
-    }
+    .template-chip.link-chip { background: #1e40af; color: #93c5fd; }
+    .template-chip.text-chip { background: transparent; color: var(--text-muted); padding: 0.25rem 0.1rem; }
+    .template-chip.newline-chip { background: var(--bg-hover); color: var(--text-dim); font-size: 0.7rem; padding: 0.15rem 0.4rem; }
+    .template-linebreak { flex-basis: 100%; height: 0; }
     .template-chip .remove-chip {
       margin-left: 4px;
       cursor: pointer;
@@ -289,10 +758,11 @@
     }
     .template-chip .remove-chip:hover { opacity: 1; }
     .template-chip.dragging { opacity: 0.4; cursor: grabbing; }
+    
     .drop-indicator {
       width: 2px;
       height: 24px;
-      background: #6366f1;
+      background: var(--accent);
       border-radius: 1px;
       animation: blink 1s infinite;
       flex-shrink: 0;
@@ -301,19 +771,19 @@
       0%, 50% { opacity: 1; }
       51%, 100% { opacity: 0.3; }
     }
+    
     .template-actions {
       display: flex;
       gap: 0.5rem;
       margin-top: 0.5rem;
       align-items: center;
     }
-    .template-actions button {
-      padding: 0.25rem 0.5rem;
-      font-size: 0.75rem;
-    }
+    .template-actions button { padding: 0.25rem 0.5rem; font-size: 0.75rem; }
+    
+    /* Context Menu */
     .context-menu {
       position: fixed;
-      background: #1e293b;
+      background: var(--bg-secondary);
       border: 1px solid #475569;
       border-radius: 8px;
       padding: 0.5rem 0;
@@ -330,15 +800,13 @@
       display: flex;
       align-items: center;
       gap: 0.5rem;
-      color: #e2e8f0;
+      color: var(--text-secondary);
     }
-    .context-menu-item:hover { background: #334155; }
+    .context-menu-item:hover { background: var(--bg-hover); }
     .context-menu-item .icon { font-size: 0.9rem; }
-    .context-menu-divider {
-      height: 1px;
-      background: #475569;
-      margin: 0.25rem 0;
-    }
+    .context-menu-divider { height: 1px; background: #475569; margin: 0.25rem 0; }
+    
+    /* Discord Preview */
     .discord-preview {
       background: #313338;
       border-radius: 8px;
@@ -347,65 +815,37 @@
       max-height: 50vh;
       overflow-y: auto;
     }
-    .discord-message {
-      display: flex;
-      gap: 1rem;
-    }
+    .discord-message { display: flex; gap: 1rem; }
     .discord-avatar {
       width: 40px;
       height: 40px;
       border-radius: 50%;
       flex-shrink: 0;
-      background: #5865f2;
+      background: var(--discord);
       object-fit: cover;
     }
-    .discord-content {
-      flex: 1;
-      min-width: 0;
-    }
-    .discord-header {
-      display: flex;
-      align-items: baseline;
-      gap: 0.5rem;
-      margin-bottom: 0.25rem;
-    }
-    .discord-username {
-      font-weight: 600;
-      color: #f2f3f5;
-    }
-    .discord-timestamp {
-      font-size: 0.75rem;
-      color: #949ba4;
-    }
-    .discord-text {
-      color: #dbdee1;
-      font-size: 0.95rem;
-      line-height: 1.4;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .discord-text a {
-      color: #00a8fc;
-      text-decoration: none;
-    }
-    .discord-text a:hover {
-      text-decoration: underline;
-    }
-    .preview-channel {
-      font-size: 0.85rem;
-      color: #64748b;
-      margin-bottom: 1rem;
-    }
+    .discord-content { flex: 1; min-width: 0; }
+    .discord-header { display: flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.25rem; }
+    .discord-username { font-weight: 600; color: #f2f3f5; }
+    .discord-timestamp { font-size: 0.75rem; color: #949ba4; }
+    .discord-text { color: #dbdee1; font-size: 0.95rem; line-height: 1.4; white-space: pre-wrap; word-break: break-word; }
+    .discord-text a { color: #00a8fc; text-decoration: none; }
+    .discord-text a:hover { text-decoration: underline; }
+    .preview-channel { font-size: 0.85rem; color: var(--text-dim); margin-bottom: 1rem; }
+    
+    /* Channel Info */
     .channel-info {
       flex: 1;
       padding: 0.75rem 1rem;
-      background: #0f172a;
-      border: 1px solid #334155;
+      background: var(--bg-primary);
+      border: 1px solid var(--border-color);
       border-radius: 8px;
       font-size: 0.9rem;
     }
     .channel-info.connected { border-color: #065f46; color: #6ee7b7; }
-    .channel-info.not-connected { color: #64748b; }
+    .channel-info.not-connected { color: var(--text-dim); }
+    
+    /* Toggle Switch */
     .toggle-switch {
       position: relative;
       width: 44px;
@@ -416,7 +856,7 @@
       transition: background 0.2s;
       flex-shrink: 0;
     }
-    .toggle-switch.active { background: #059669; }
+    .toggle-switch.active { background: var(--success); }
     .toggle-switch::after {
       content: '';
       position: absolute;
@@ -431,73 +871,335 @@
     .toggle-switch.active::after { transform: translateX(20px); }
     .feed-item.disabled { opacity: 0.5; }
     .feed-item.disabled .feed-name { text-decoration: line-through; }
-    @media (max-width: 640px) {
-      body { padding: 1rem; }
+    
+    /* ============================================
+       ADMIN PAGE STYLES
+       ============================================ */
+    .admin-page {
+      display: none;
+    }
+    
+    .admin-page.active {
+      display: block;
+    }
+    
+    .users-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .users-table th,
+    .users-table td {
+      padding: 0.875rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .users-table th {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      background: var(--bg-primary);
+    }
+    
+    .users-table td {
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+    }
+    
+    .users-table tr:hover td {
+      background: var(--bg-primary);
+    }
+    
+    .user-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    
+    .user-badge.admin {
+      background: var(--accent);
+      color: white;
+    }
+    
+    .user-badge.user {
+      background: var(--bg-hover);
+      color: var(--text-muted);
+    }
+    
+    .user-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .btn-icon {
+      padding: 0.4rem 0.6rem;
+      background: var(--bg-hover);
+      border: none;
+      border-radius: 6px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-icon:hover {
+      background: #475569;
+      color: var(--text-secondary);
+    }
+    
+    .btn-icon.danger:hover {
+      background: var(--danger);
+      color: white;
+    }
+    
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 768px) {
+      .lnb {
+        transform: translateX(-100%);
+      }
+      
+      .lnb.open {
+        transform: translateX(0);
+      }
+      
+      .lnb-toggle {
+        display: block;
+      }
+      
+      .lnb-overlay.show {
+        display: block;
+      }
+      
+      .main-content {
+        margin-left: 0;
+        padding: 1rem;
+        padding-top: 4rem;
+      }
+      
       .feed-item { flex-wrap: wrap; }
       .feed-actions { width: 100%; justify-content: flex-end; }
       .form-row { grid-template-columns: 1fr; }
       .channel-row { flex-direction: column; align-items: stretch; }
       .channel-row .btn { width: 100%; }
+      
+      .page-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>RSScode</h1>
-    
-    <div class="card">
-      <div class="card-header">
-        <h2 class="collapse-toggle collapsed" onclick="toggleSettings()">Settings</h2>
-        <span id="settingsStatus" class="discord-status not-configured">
-          <span class="status-dot"></span>Not Configured
-        </span>
+  <!-- ============================================
+       LOGIN SCREEN
+       ============================================ -->
+  <div id="loginScreen" class="auth-container">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <h1>RSScode</h1>
+        <p>RSS to Discord notification service</p>
       </div>
-      <div id="settingsContent" class="collapse-content">
-        <form id="settingsForm">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="clientId">Discord Client ID</label>
-              <input type="text" id="clientId" placeholder="123456789012345678">
-            </div>
-            <div class="form-group">
-              <label for="clientSecret">Discord Client Secret</label>
-              <input type="password" id="clientSecret" placeholder="••••••••">
-            </div>
-          </div>
-          <p class="help-text">
-            Get these from <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a>.
-            Create an app, then go to OAuth2 → General.
-          </p>
-          <div class="form-group" style="margin-top: 1rem;">
-            <label for="checkInterval">Check Interval (minutes)</label>
-            <input type="number" id="checkInterval" min="1" max="1440" value="10" style="width: 120px;">
-            <span class="help-text" style="display: inline; margin-left: 0.5rem;">1 ~ 1440 (24h)</span>
-            <div id="checkScheduleInfo" class="help-text" style="margin-top: 0.5rem;"></div>
-          </div>
-          <div class="actions">
-            <button type="submit" class="btn btn-primary">Save Settings</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-header">
-        <h2>Registered Feeds</h2>
-        <div class="actions" style="margin-top: 0;">
-          <button type="button" class="btn btn-primary btn-sm" onclick="openAddModal()">Add Feed</button>
-          <button type="button" class="btn btn-secondary btn-sm" id="checkBtn">Check Now</button>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="exportFeeds()">Export</button>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('importFile').click()">Import</button>
-          <input type="file" id="importFile" accept=".json" style="display:none" onchange="importFeeds(this)">
+      <form id="loginForm" class="auth-form">
+        <div class="form-group">
+          <label for="loginUsername">Username</label>
+          <input type="text" id="loginUsername" placeholder="Enter your username" required autocomplete="username">
+          <div id="loginUsernameError" class="auth-error"></div>
         </div>
-      </div>
-      <div id="feedList" class="feed-list">
-        <div class="empty">Loading...</div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" placeholder="Enter your password" required autocomplete="current-password">
+          <div id="loginPasswordError" class="auth-error"></div>
+        </div>
+        <div id="loginError" class="auth-error" style="margin-bottom: 1rem;"></div>
+        <button type="submit" class="btn-auth" id="loginBtn">Login</button>
+      </form>
+      <div class="auth-footer">
+        <span>Don't have an account?</span>
+        <a href="#" id="showRegisterLink">Register</a>
       </div>
     </div>
   </div>
 
+  <!-- ============================================
+       REGISTER SCREEN
+       ============================================ -->
+  <div id="registerScreen" class="auth-container hidden">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <h1>RSScode</h1>
+        <p>Create your account</p>
+      </div>
+      <form id="registerForm" class="auth-form">
+        <div class="form-group">
+          <label for="registerUsername">Username</label>
+          <input type="text" id="registerUsername" placeholder="Choose a username (min 3 chars)" required minlength="3" autocomplete="username">
+          <div id="registerUsernameError" class="auth-error"></div>
+        </div>
+        <div class="form-group">
+          <label for="registerPassword">Password</label>
+          <input type="password" id="registerPassword" placeholder="Create a password (min 4 chars)" required minlength="4" autocomplete="new-password">
+          <div id="registerPasswordError" class="auth-error"></div>
+        </div>
+        <div class="form-group">
+          <label for="registerConfirmPassword">Confirm Password</label>
+          <input type="password" id="registerConfirmPassword" placeholder="Confirm your password" required autocomplete="new-password">
+          <div id="registerConfirmError" class="auth-error"></div>
+        </div>
+        <div id="registerError" class="auth-error" style="margin-bottom: 1rem;"></div>
+        <button type="submit" class="btn-auth" id="registerBtn">Register</button>
+      </form>
+      <div class="auth-footer">
+        <span>Already have an account?</span>
+        <a href="#" id="showLoginLink">Login</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================
+       MAIN APP LAYOUT
+       ============================================ -->
+  <div id="appLayout" class="app-layout hidden">
+    <!-- Mobile LNB Toggle -->
+    <button class="lnb-toggle" id="lnbToggle">☰</button>
+    <div class="lnb-overlay" id="lnbOverlay"></div>
+    
+    <!-- Left Navigation Bar -->
+    <aside class="lnb" id="lnb">
+      <div class="lnb-header">
+        <div class="lnb-brand">RSScode</div>
+        <div class="lnb-user">
+          <div class="lnb-user-info">
+            <div class="lnb-avatar" id="lnbAvatar">U</div>
+            <span class="lnb-username" id="lnbUsername">User</span>
+          </div>
+          <button class="btn-logout" id="logoutBtn">Logout</button>
+        </div>
+      </div>
+      
+      <div class="lnb-section">
+        <div class="lnb-section-header">
+          <span class="lnb-section-title">Workspaces</span>
+          <button class="btn-new-workspace" id="newWorkspaceBtn">+ New</button>
+        </div>
+        <div class="workspace-list" id="workspaceList">
+          <!-- Workspaces will be rendered here -->
+        </div>
+      </div>
+      
+      <div class="lnb-admin hidden" id="adminSection">
+        <div class="admin-item" id="adminUsersBtn">
+          <span>👥</span>
+          <span>User Management</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Feeds Page -->
+      <div id="feedsPage" class="container">
+        <div class="page-header">
+          <h1>RSScode</h1>
+          <div class="workspace-badge">
+            <span>📁</span>
+            <span>Workspace: <strong id="currentWorkspaceName">Default</strong></span>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h2 class="collapse-toggle collapsed" onclick="toggleSettings()">Settings</h2>
+            <span id="settingsStatus" class="discord-status not-configured">
+              <span class="status-dot"></span>Not Configured
+            </span>
+          </div>
+          <div id="settingsContent" class="collapse-content">
+            <form id="settingsForm">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="clientId">Discord Client ID</label>
+                  <input type="text" id="clientId" placeholder="123456789012345678">
+                </div>
+                <div class="form-group">
+                  <label for="clientSecret">Discord Client Secret</label>
+                  <input type="password" id="clientSecret" placeholder="••••••••">
+                </div>
+              </div>
+              <p class="help-text">
+                Get these from <a href="https://discord.com/developers/applications" target="_blank">Discord Developer Portal</a>.
+                Create an app, then go to OAuth2 → General.
+              </p>
+              <div class="form-group" style="margin-top: 1rem;">
+                <label for="checkInterval">Check Interval (minutes)</label>
+                <input type="number" id="checkInterval" min="1" max="1440" value="10" style="width: 120px;">
+                <span class="help-text" style="display: inline; margin-left: 0.5rem;">1 ~ 1440 (24h)</span>
+                <div id="checkScheduleInfo" class="help-text" style="margin-top: 0.5rem;"></div>
+              </div>
+              <div class="actions">
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h2>Registered Feeds</h2>
+            <div class="actions" style="margin-top: 0;">
+              <button type="button" class="btn btn-primary btn-sm" onclick="openAddModal()">Add Feed</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="checkBtn">Check Now</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="exportFeeds()">Export</button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('importFile').click()">Import</button>
+              <input type="file" id="importFile" accept=".json" style="display:none" onchange="importFeeds(this)">
+            </div>
+          </div>
+          <div id="feedList" class="feed-list">
+            <div class="empty">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Admin Page -->
+      <div id="adminPage" class="container admin-page">
+        <div class="page-header">
+          <h1>User Management</h1>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h2>All Users</h2>
+          </div>
+          <table class="users-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersList">
+              <!-- Users will be rendered here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ============================================
+       MODALS
+       ============================================ -->
+  <!-- Edit Feed Modal -->
   <div class="modal-overlay" id="editModal">
     <div class="modal">
       <h3>Edit Feed</h3>
@@ -547,6 +1249,7 @@
     </div>
   </div>
 
+  <!-- Add Feed Modal -->
   <div class="modal-overlay" id="addModal">
     <div class="modal">
       <h3>Add New Feed</h3>
@@ -596,6 +1299,7 @@
     </div>
   </div>
 
+  <!-- Preview Modal -->
   <div class="modal-overlay" id="previewModal">
     <div class="modal" style="max-width: 500px;">
       <h3>Message Preview</h3>
@@ -619,6 +1323,49 @@
     </div>
   </div>
 
+  <!-- New Workspace Modal -->
+  <div class="modal-overlay" id="workspaceModal">
+    <div class="modal" style="max-width: 400px;">
+      <h3>New Workspace</h3>
+      <form id="workspaceForm">
+        <div class="form-group">
+          <label for="workspaceName">Workspace Name<span class="required-mark">*</span></label>
+          <input type="text" id="workspaceName" placeholder="My Workspace" required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeWorkspaceModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Change Password Modal (Admin) -->
+  <div class="modal-overlay" id="changePasswordModal">
+    <div class="modal" style="max-width: 400px;">
+      <h3>Change Password</h3>
+      <form id="changePasswordForm">
+        <input type="hidden" id="changePasswordUserId">
+        <div class="form-group">
+          <label>User: <strong id="changePasswordUsername"></strong></label>
+        </div>
+        <div class="form-group">
+          <label for="newPassword">New Password<span class="required-mark">*</span></label>
+          <input type="password" id="newPassword" placeholder="Enter new password (min 4 chars)" required minlength="4">
+        </div>
+        <div class="form-group">
+          <label for="confirmNewPassword">Confirm Password<span class="required-mark">*</span></label>
+          <input type="password" id="confirmNewPassword" placeholder="Confirm new password" required>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">Change Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Context Menu -->
   <div id="contextMenu" class="context-menu">
     <div class="context-menu-item" id="contextMenuLink" onclick="contextMenuAction('link')">
       <span class="icon">🔗</span> + Link
@@ -631,15 +1378,749 @@
 
   <script>
     const API = '/api';
+    
+    // ============================================
+    // STATE MANAGEMENT
+    // ============================================
+    let currentUser = null;
+    let currentWorkspaceId = null;
+    let workspaces = [];
     let discordConfigured = false;
     let feedsData = [];
     let connectedChannel = null;
     
-    (function init() {
-      restoreFormData();
-      handleUrlParams();
-    })();
+    // ============================================
+    // AUTH FUNCTIONS
+    // ============================================
+    async function checkAuth() {
+      try {
+        const res = await fetch(`${API}/auth/me`, { credentials: 'include' });
+        if (res.ok) {
+          currentUser = await res.json();
+          return true;
+        }
+      } catch (e) {
+        console.error('Auth check failed:', e);
+      }
+      return false;
+    }
+    
+    async function login(username, password) {
+      const res = await fetch(`${API}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Login failed');
+      }
+      
+      currentUser = await res.json();
+      return currentUser;
+    }
+    
+    async function register(username, password, passwordConfirm) {
+      const res = await fetch(`${API}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password, passwordConfirm }),
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Registration failed');
+      }
+      
+      return await res.json();
+    }
+    
+    async function logout() {
+      try {
+        await fetch(`${API}/auth/logout`, { method: 'POST', credentials: 'include' });
+      } catch (e) {
+        console.error('Logout failed:', e);
+      }
+      currentUser = null;
+      currentWorkspaceId = null;
+      localStorage.removeItem('rsscode_workspaceId');
+      showLoginScreen();
+    }
+    
+    // ============================================
+    // SCREEN NAVIGATION
+    // ============================================
+    function showLoginScreen() {
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('registerScreen').classList.add('hidden');
+      document.getElementById('appLayout').classList.add('hidden');
+      clearAuthErrors();
+    }
+    
+    function showRegisterScreen() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('registerScreen').classList.remove('hidden');
+      document.getElementById('appLayout').classList.add('hidden');
+      clearAuthErrors();
+    }
+    
+    function showApp() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('registerScreen').classList.add('hidden');
+      document.getElementById('appLayout').classList.remove('hidden');
+      
+      // Update user info in LNB
+      if (currentUser) {
+        document.getElementById('lnbAvatar').textContent = currentUser.username.charAt(0).toUpperCase();
+        document.getElementById('lnbUsername').textContent = currentUser.username;
+        
+        // Show admin section if user is admin
+        const adminSection = document.getElementById('adminSection');
+        if (currentUser.isAdmin) {
+          adminSection.classList.remove('hidden');
+        } else {
+          adminSection.classList.add('hidden');
+        }
+      }
+      
+      // Load workspaces and feeds
+      loadWorkspaces();
+      loadSettings();
+    }
+    
+    function showFeedsPage() {
+      document.getElementById('feedsPage').style.display = 'block';
+      document.getElementById('adminPage').classList.remove('active');
+      document.getElementById('adminUsersBtn').classList.remove('active');
+      
+      // Highlight selected workspace
+      document.querySelectorAll('.workspace-item').forEach(item => {
+        item.classList.toggle('active', item.dataset.id == currentWorkspaceId);
+      });
+    }
+    
+    function showAdminPage() {
+      document.getElementById('feedsPage').style.display = 'none';
+      document.getElementById('adminPage').classList.add('active');
+      document.getElementById('adminUsersBtn').classList.add('active');
+      
+      // Deselect workspaces
+      document.querySelectorAll('.workspace-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      
+      loadUsers();
+    }
+    
+    function clearAuthErrors() {
+      document.querySelectorAll('.auth-error').forEach(el => {
+        el.classList.remove('show');
+        el.textContent = '';
+      });
+      document.querySelectorAll('.auth-form input').forEach(el => {
+        el.classList.remove('error');
+      });
+    }
+    
+    function showAuthError(elementId, message) {
+      const el = document.getElementById(elementId);
+      if (el) {
+        el.textContent = message;
+        el.classList.add('show');
+      }
+    }
+    
+    // ============================================
+    // WORKSPACE FUNCTIONS
+    // ============================================
+    async function loadWorkspaces() {
+      try {
+        const res = await fetch(`${API}/workspaces`, { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to load workspaces');
+        workspaces = await res.json();
+        renderWorkspaces();
+        
+        // Select workspace from localStorage or first one
+        const savedWorkspaceId = localStorage.getItem('rsscode_workspaceId');
+        if (savedWorkspaceId && workspaces.find(w => w.id == savedWorkspaceId)) {
+          selectWorkspace(parseInt(savedWorkspaceId));
+        } else if (workspaces.length > 0) {
+          selectWorkspace(workspaces[0].id);
+        }
+      } catch (e) {
+        console.error('Failed to load workspaces:', e);
+        showToast('Failed to load workspaces', 'error');
+      }
+    }
+    
+    function renderWorkspaces() {
+      const list = document.getElementById('workspaceList');
+      if (workspaces.length === 0) {
+        list.innerHTML = '<div class="empty" style="padding: 1rem; font-size: 0.85rem;">No workspaces yet</div>';
+        return;
+      }
+      
+      list.innerHTML = workspaces.map(ws => `
+        <div class="workspace-item${ws.id == currentWorkspaceId ? ' active' : ''}" 
+             data-id="${ws.id}" 
+             onclick="selectWorkspace(${ws.id})">
+          <span class="workspace-icon">📁</span>
+          <span class="workspace-name">${escapeHtml(ws.name)}</span>
+          ${ws.feedCount !== undefined ? `<span class="workspace-count">${ws.feedCount}</span>` : ''}
+        </div>
+      `).join('');
+    }
+    
+    function selectWorkspace(id) {
+      currentWorkspaceId = id;
+      localStorage.setItem('rsscode_workspaceId', id);
+      
+      const workspace = workspaces.find(w => w.id === id);
+      if (workspace) {
+        document.getElementById('currentWorkspaceName').textContent = workspace.name;
+      }
+      
+      renderWorkspaces();
+      showFeedsPage();
+      loadFeeds();
+    }
+    
+    async function createWorkspace(name) {
+      const res = await fetch(`${API}/workspaces`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to create workspace');
+      }
+      
+      return await res.json();
+    }
+    
+    function openWorkspaceModal() {
+      document.getElementById('workspaceName').value = '';
+      document.getElementById('workspaceModal').classList.add('show');
+    }
+    
+    function closeWorkspaceModal() {
+      document.getElementById('workspaceModal').classList.remove('show');
+    }
+    
+    // ============================================
+    // ADMIN FUNCTIONS
+    // ============================================
+    async function loadUsers() {
+      try {
+        const res = await fetch(`${API}/admin/users`, { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to load users');
+        const users = await res.json();
+        renderUsers(users);
+      } catch (e) {
+        console.error('Failed to load users:', e);
+        showToast('Failed to load users', 'error');
+      }
+    }
+    
+    function renderUsers(users) {
+      const tbody = document.getElementById('usersList');
+      tbody.innerHTML = users.map(user => `
+        <tr>
+          <td>${escapeHtml(user.username)}</td>
+          <td>
+            <span class="user-badge ${user.isAdmin ? 'admin' : 'user'}">
+              ${user.isAdmin ? '👑 Admin' : '👤 User'}
+            </span>
+          </td>
+          <td>${formatDate(user.createdAt)}</td>
+          <td>
+            <div class="user-actions">
+              <button class="btn-icon" onclick="openChangePasswordModal(${user.id}, '${escapeHtml(user.username)}')" title="Change Password">🔑</button>
+              <button class="btn-icon" onclick="toggleAdminStatus(${user.id}, ${!user.isAdmin})" title="${user.isAdmin ? 'Remove Admin' : 'Make Admin'}">
+                ${user.isAdmin ? '👤' : '👑'}
+              </button>
+              ${user.id !== currentUser.id ? `<button class="btn-icon danger" onclick="deleteUser(${user.id}, '${escapeHtml(user.username)}')" title="Delete User">🗑️</button>` : ''}
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+    
+    async function toggleAdminStatus(userId, isAdmin) {
+      if (!confirm(`Are you sure you want to ${isAdmin ? 'grant admin rights to' : 'remove admin rights from'} this user?`)) return;
+      
+      try {
+        const res = await fetch(`${API}/admin/users/${userId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isAdmin }),
+          credentials: 'include'
+        });
+        
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to update user');
+        }
+        
+        showToast(isAdmin ? 'Admin rights granted' : 'Admin rights removed');
+        loadUsers();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+    
+    async function deleteUser(userId, username) {
+      if (!confirm(`Are you sure you want to delete user "${username}"? This action cannot be undone.`)) return;
+      
+      try {
+        const res = await fetch(`${API}/admin/users/${userId}`, {
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to delete user');
+        }
+        
+        showToast('User deleted');
+        loadUsers();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+    
+    function openChangePasswordModal(userId, username) {
+      document.getElementById('changePasswordUserId').value = userId;
+      document.getElementById('changePasswordUsername').textContent = username;
+      document.getElementById('newPassword').value = '';
+      document.getElementById('confirmNewPassword').value = '';
+      document.getElementById('changePasswordModal').classList.add('show');
+    }
+    
+    function closeChangePasswordModal() {
+      document.getElementById('changePasswordModal').classList.remove('show');
+    }
+    
+    // ============================================
+    // FEED FUNCTIONS (with workspace scoping)
+    // ============================================
+    async function loadFeeds() {
+      if (!currentWorkspaceId) return;
+      
+      try {
+        const res = await fetch(`${API}/feeds?workspaceId=${currentWorkspaceId}`, { credentials: 'include' });
+        feedsData = await res.json();
+        renderFeeds(feedsData);
+        updateCheckScheduleInfo();
+      } catch (e) {
+        showToast('Failed to load feeds', 'error');
+      }
+    }
+    
+    function renderFeeds(feeds) {
+      const list = document.getElementById('feedList');
+      if (feeds.length === 0) {
+        list.innerHTML = '<div class="empty">No feeds registered yet</div>';
+        return;
+      }
+      const sorted = [...feeds].sort((a, b) => {
+        if (!a.lastSentAt && !b.lastSentAt) return 0;
+        if (!a.lastSentAt) return 1;
+        if (!b.lastSentAt) return -1;
+        return new Date(b.lastSentAt) - new Date(a.lastSentAt);
+      });
+      list.innerHTML = sorted.map(feed => {
+        const isConnected = !!feed.webhookUrl;
+        const isEnabled = feed.enabled !== false;
 
+        return `
+          <div class="feed-item${isEnabled ? '' : ' disabled'}" data-id="${feed.id}">
+            <img class="feed-avatar" src="${feed.profileImage || `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23475569%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22%2394a3b8%22>${feed.name.charAt(0).toUpperCase()}</text></svg>`}" 
+                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23475569%22 width=%22100%22 height=%22100%22/></svg>'">
+            <div class="feed-info">
+              <div class="feed-name">${escapeHtml(feed.name)}</div>
+              <div class="feed-url">${escapeHtml(feed.url)}</div>
+              <div class="feed-meta">
+                <span>Checked: ${formatTime(feed.lastCheckedAt)}${feed.lastCheckedTitle ? ` - ${escapeHtml(truncate(feed.lastCheckedTitle, 30))}` : ''}</span>
+              </div>
+              <div class="feed-meta">
+                <span>Sent: ${formatTime(feed.lastSentAt)}${feed.lastSentTitle ? ` - ${escapeHtml(truncate(feed.lastSentTitle, 30))}` : ''}</span>
+              </div>
+            </div>
+            <div class="feed-actions">
+              <button class="btn btn-secondary btn-sm" onclick="testFeed(${feed.id})">Test</button>
+              <button class="btn btn-secondary btn-sm" onclick="openEditModal(${feed.id})">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteFeed(${feed.id})">Delete</button>
+              <div class="toggle-switch${isEnabled ? ' active' : ''}" onclick="toggleFeedEnabled(${feed.id}, ${!isEnabled}, ${isConnected})" title="${isEnabled ? 'Click to disable' : 'Click to enable'}"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    async function init() {
+      // Check for auth
+      const isAuthenticated = await checkAuth();
+      
+      if (isAuthenticated) {
+        showApp();
+        handleUrlParams();
+      } else {
+        showLoginScreen();
+      }
+      
+      // Set up event listeners
+      setupEventListeners();
+    }
+    
+    function setupEventListeners() {
+      // Auth screen toggles
+      document.getElementById('showRegisterLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        showRegisterScreen();
+      });
+      
+      document.getElementById('showLoginLink').addEventListener('click', (e) => {
+        e.preventDefault();
+        showLoginScreen();
+      });
+      
+      // Login form
+      document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearAuthErrors();
+        
+        const username = document.getElementById('loginUsername').value.trim();
+        const password = document.getElementById('loginPassword').value;
+        
+        const btn = document.getElementById('loginBtn');
+        btn.disabled = true;
+        btn.textContent = 'Logging in...';
+        
+        try {
+          await login(username, password);
+          showApp();
+          handleUrlParams();
+        } catch (err) {
+          showAuthError('loginError', err.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Login';
+        }
+      });
+      
+      // Register form
+      document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        clearAuthErrors();
+        
+        const username = document.getElementById('registerUsername').value.trim();
+        const password = document.getElementById('registerPassword').value;
+        const confirmPassword = document.getElementById('registerConfirmPassword').value;
+        
+        // Validation
+        if (username.length < 3) {
+          showAuthError('registerUsernameError', 'Username must be at least 3 characters');
+          document.getElementById('registerUsername').classList.add('error');
+          return;
+        }
+        
+        if (password.length < 4) {
+          showAuthError('registerPasswordError', 'Password must be at least 4 characters');
+          document.getElementById('registerPassword').classList.add('error');
+          return;
+        }
+        
+        if (password !== confirmPassword) {
+          showAuthError('registerConfirmError', 'Passwords do not match');
+          document.getElementById('registerConfirmPassword').classList.add('error');
+          return;
+        }
+        
+        const btn = document.getElementById('registerBtn');
+        btn.disabled = true;
+        btn.textContent = 'Registering...';
+        
+        try {
+          currentUser = await register(username, password, confirmPassword);
+          showToast('Registration successful!');
+          showApp();
+        } catch (err) {
+          showAuthError('registerError', err.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Register';
+        }
+      });
+      
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', logout);
+      
+      // New workspace
+      document.getElementById('newWorkspaceBtn').addEventListener('click', openWorkspaceModal);
+      
+      // Workspace form
+      document.getElementById('workspaceForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('workspaceName').value.trim();
+        
+        try {
+          const workspace = await createWorkspace(name);
+          closeWorkspaceModal();
+          showToast('Workspace created');
+          await loadWorkspaces();
+          selectWorkspace(workspace.id);
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+      
+      // Admin users link
+      document.getElementById('adminUsersBtn').addEventListener('click', showAdminPage);
+      
+      // Change password form
+      document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const userId = document.getElementById('changePasswordUserId').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmNewPassword').value;
+        
+        if (newPassword.length < 4) {
+          showToast('Password must be at least 4 characters', 'error');
+          return;
+        }
+        
+        if (newPassword !== confirmPassword) {
+          showToast('Passwords do not match', 'error');
+          return;
+        }
+        
+        try {
+          const res = await fetch(`${API}/admin/users/${userId}/password`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: newPassword }),
+            credentials: 'include'
+          });
+          
+          if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || 'Failed to change password');
+          }
+          
+          closeChangePasswordModal();
+          showToast('Password changed successfully');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+      
+      // Mobile LNB toggle
+      document.getElementById('lnbToggle').addEventListener('click', () => {
+        document.getElementById('lnb').classList.toggle('open');
+        document.getElementById('lnbOverlay').classList.toggle('show');
+      });
+      
+      document.getElementById('lnbOverlay').addEventListener('click', () => {
+        document.getElementById('lnb').classList.remove('open');
+        document.getElementById('lnbOverlay').classList.remove('show');
+      });
+      
+      // Settings form
+      document.getElementById('settingsForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        form.classList.add('loading');
+        
+        try {
+          const interval = parseInt(document.getElementById('checkInterval').value) || 10;
+          const res = await fetch(`${API}/settings`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              discord_client_id: document.getElementById('clientId').value,
+              discord_client_secret: document.getElementById('clientSecret').value,
+              check_interval_minutes: interval
+            }),
+            credentials: 'include'
+          });
+          
+          if (!res.ok) throw new Error('Failed to save');
+          
+          showToast(`Settings saved (check every ${interval} min)`);
+          await loadSettings();
+          updateCheckScheduleInfo();
+        } catch (e) {
+          showToast('Failed to save settings', 'error');
+        } finally {
+          form.classList.remove('loading');
+        }
+      });
+      
+      // Check interval input
+      document.getElementById('checkInterval').addEventListener('input', updateCheckScheduleInfo);
+      
+      // Check button
+      document.getElementById('checkBtn').addEventListener('click', async function() {
+        this.classList.add('loading');
+        this.textContent = 'Checking...';
+        try {
+          await fetch(`${API}/check`, { method: 'POST', credentials: 'include' });
+          showToast('Feed check completed');
+          loadFeeds();
+        } catch (e) {
+          showToast('Check failed', 'error');
+        } finally {
+          this.classList.remove('loading');
+          this.textContent = 'Check Now';
+        }
+      });
+      
+      // Add feed form
+      document.getElementById('addForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        form.classList.add('loading');
+        
+        try {
+          let webhookData = {};
+          if (connectedChannel) {
+            webhookData = {
+              webhookUrl: connectedChannel.url,
+              webhookChannelId: connectedChannel.channelId,
+              webhookGuildId: connectedChannel.guildId,
+              webhookName: connectedChannel.name
+            };
+          }
+
+          const res = await fetch(`${API}/feeds?workspaceId=${currentWorkspaceId}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: document.getElementById('name').value,
+              url: document.getElementById('url').value,
+              profileImage: document.getElementById('profileImage').value || undefined,
+              messageTemplate: document.getElementById('messageTemplate').value || undefined,
+              workspaceId: currentWorkspaceId,
+              ...webhookData
+            }),
+            credentials: 'include'
+          });
+          
+          if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || 'Failed to add feed');
+          }
+          
+          form.reset();
+          closeAddModal();
+          const msg = connectedChannel ? 'Feed added with Discord channel.' : 'Feed added. Connect Discord to start receiving notifications.';
+          showToast(msg);
+          await loadFeeds();
+          await loadWorkspaces(); // Refresh feed counts
+        } catch (e) {
+          showToast(e.message, 'error');
+        } finally {
+          form.classList.remove('loading');
+        }
+      });
+      
+      // Edit form
+      document.getElementById('editForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        form.classList.add('loading');
+        
+        const id = document.getElementById('editId').value;
+        
+        try {
+          const res = await fetch(`${API}/feeds/${id}?workspaceId=${currentWorkspaceId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: document.getElementById('editName').value,
+              url: document.getElementById('editUrl').value,
+              messageTemplate: document.getElementById('editMessageTemplate').value || null,
+              profileImage: document.getElementById('editProfileImage').value || null
+            }),
+            credentials: 'include'
+          });
+          
+          if (!res.ok) throw new Error('Failed to update');
+          
+          closeEditModal();
+          showToast('Feed updated');
+          await loadFeeds();
+        } catch (e) {
+          showToast('Update failed', 'error');
+        } finally {
+          form.classList.remove('loading');
+        }
+      });
+      
+      // Edit modal close on backdrop click
+      document.getElementById('editModal').addEventListener('click', (e) => {
+        if (e.target.id === 'editModal') closeEditModal();
+      });
+      
+      // Send test button
+      document.getElementById('sendTestBtn').addEventListener('click', async () => {
+        if (!currentPreviewFeedId) return;
+        
+        const btn = document.getElementById('sendTestBtn');
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+        
+        try {
+          const res = await fetch(`${API}/feeds/${currentPreviewFeedId}/test?workspaceId=${currentWorkspaceId}`, { 
+            method: 'POST',
+            credentials: 'include'
+          });
+          const data = await res.json();
+          
+          if (!res.ok) {
+            throw new Error(data.error || 'Test failed');
+          }
+          
+          closePreviewModal();
+          showToast(data.message || 'Test message sent successfully!');
+          loadFeeds();
+        } catch (e) {
+          showToast(e.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Send to Discord';
+        }
+      });
+      
+      // Context menu
+      document.addEventListener('click', (e) => {
+        if (!contextMenu.contains(e.target)) {
+          hideContextMenu();
+        }
+      });
+      
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          hideContextMenu();
+        }
+      });
+    }
+    
+    // ============================================
+    // URL PARAMS HANDLING
+    // ============================================
     function handleUrlParams() {
       const params = new URLSearchParams(window.location.search);
       
@@ -668,7 +2149,122 @@
         window.history.replaceState({}, '', '/');
       }
     }
-
+    
+    // ============================================
+    // SETTINGS FUNCTIONS
+    // ============================================
+    async function loadSettings() {
+      try {
+        const res = await fetch(`${API}/settings`, { credentials: 'include' });
+        const settings = await res.json();
+        
+        document.getElementById('clientId').value = settings.discord_client_id || '';
+        document.getElementById('clientSecret').value = settings.discord_client_secret || '';
+        document.getElementById('checkInterval').value = settings.check_interval_minutes || '10';
+        
+        discordConfigured = !!(settings.discord_client_id && settings.discord_client_secret);
+        updateSettingsStatus();
+        updateConnectButton();
+      } catch (e) {
+        console.error('Failed to load settings', e);
+      }
+    }
+    
+    function updateConnectButton() {
+      const btn = document.getElementById('connectChannelBtn');
+      if (!discordConfigured) {
+        btn.onclick = (e) => { e.preventDefault(); toggleSettings(true); showToast('Configure Discord settings first', 'error'); };
+      } else {
+        btn.onclick = (e) => { e.preventDefault(); saveFormData(); window.location.href = '/api/discord/authorize'; };
+      }
+    }
+    
+    function updateSettingsStatus() {
+      const status = document.getElementById('settingsStatus');
+      if (discordConfigured) {
+        status.className = 'discord-status connected';
+        status.innerHTML = '<span class="status-dot"></span>Configured';
+      } else {
+        status.className = 'discord-status not-configured';
+        status.innerHTML = '<span class="status-dot"></span>Not Configured';
+      }
+    }
+    
+    function toggleSettings(forceShow) {
+      const content = document.getElementById('settingsContent');
+      const toggle = document.querySelector('.collapse-toggle');
+      const shouldShow = forceShow === true || !content.classList.contains('show');
+      
+      content.classList.toggle('show', shouldShow);
+      toggle.classList.toggle('collapsed', !shouldShow);
+    }
+    
+    // ============================================
+    // UTILITY FUNCTIONS
+    // ============================================
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+    
+    function formatTime(timestamp) {
+      if (!timestamp) return '-';
+      return new Date(timestamp).toLocaleString('ko-KR');
+    }
+    
+    function formatDate(timestamp) {
+      if (!timestamp) return '-';
+      return new Date(timestamp).toLocaleDateString('ko-KR');
+    }
+    
+    function truncate(str, len) {
+      if (!str) return '';
+      return str.length > len ? str.substring(0, len) + '...' : str;
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    function updateCheckScheduleInfo() {
+      const info = document.getElementById('checkScheduleInfo');
+      const interval = parseInt(document.getElementById('checkInterval').value) || 10;
+      
+      let lastCheck = null;
+      for (const feed of feedsData) {
+        if (feed.lastCheckedAt) {
+          const t = new Date(feed.lastCheckedAt);
+          if (!lastCheck || t > lastCheck) lastCheck = t;
+        }
+      }
+      
+      if (lastCheck) {
+        const nextCheck = new Date(lastCheck.getTime() + interval * 60 * 1000);
+        const now = new Date();
+        const diff = nextCheck - now;
+        
+        let nextText;
+        if (diff <= 0) {
+          nextText = 'soon';
+        } else {
+          const mins = Math.ceil(diff / 60000);
+          nextText = mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins}m`;
+        }
+        
+        info.textContent = `Last: ${lastCheck.toLocaleString('ko-KR')} / Next: ${nextText}`;
+      } else {
+        info.textContent = 'No checks yet';
+      }
+    }
+    
+    // ============================================
+    // FEED MODAL FUNCTIONS
+    // ============================================
     function updateAddFormValidity() {
       const name = document.getElementById('name').value.trim();
       const url = document.getElementById('url').value.trim();
@@ -747,93 +2343,180 @@
         btn.textContent = 'Connect';
       }
     }
-
-    function toggleSettings(forceShow) {
-      const content = document.getElementById('settingsContent');
-      const toggle = document.querySelector('.collapse-toggle');
-      const shouldShow = forceShow === true || !content.classList.contains('show');
-      
-      content.classList.toggle('show', shouldShow);
-      toggle.classList.toggle('collapsed', !shouldShow);
+    
+    function updateProfilePreview(inputId, previewId) {
+      const input = document.getElementById(inputId);
+      const preview = document.getElementById(previewId);
+      if (input.value) {
+        preview.src = input.value;
+        preview.style.display = 'block';
+        preview.onerror = () => { preview.style.display = 'none'; };
+      } else {
+        preview.style.display = 'none';
+      }
     }
 
-    async function loadSettings() {
+    function openAddModal() {
+      document.getElementById('addForm').reset();
+      document.getElementById('messageTemplate').value = '[{title}]({link})\n{description}';
+      connectedChannel = null;
+      updateChannelStatus();
+      updateProfilePreview('profileImage', 'profilePreview');
+      document.getElementById('rssFields').style.display = 'none';
+      renderTemplateBuilder('templateBuilder', '[{title}]({link})\n{description}');
+      document.getElementById('addModal').classList.add('show');
+      setupAddFormValidation();
+      updateAddFormValidity();
+    }
+
+    function closeAddModal() {
+      document.getElementById('addModal').classList.remove('show');
+      clearFormData();
+    }
+
+    let editingFeedId = null;
+
+    function openEditModal(id) {
+      const feed = feedsData.find(f => f.id === id);
+      if (!feed) return;
+
+      editingFeedId = id;
+      document.getElementById('editId').value = id;
+      document.getElementById('editName').value = feed.name;
+      document.getElementById('editUrl').value = feed.url;
+      const templateValue = feed.messageTemplate || '[{title}]({link})\n{description}';
+      document.getElementById('editMessageTemplate').value = templateValue;
+      document.getElementById('editProfileImage').value = feed.profileImage || '';
+      document.getElementById('editRssFields').style.display = 'none';
+      renderTemplateBuilder('editTemplateBuilder', templateValue);
+      updateProfilePreview('editProfileImage', 'editProfilePreview');
+      
+      const status = document.getElementById('editChannelStatus');
+      const btn = document.getElementById('editConnectChannelBtn');
+      
+      if (feed.webhookUrl) {
+        status.className = 'channel-info connected';
+        status.textContent = feed.webhookName ? `Webhook: ${feed.webhookName}` : 'Webhook connected';
+        btn.textContent = 'Change';
+      } else {
+        status.className = 'channel-info not-connected';
+        status.textContent = 'Not connected';
+        btn.textContent = 'Connect';
+      }
+      
+      btn.onclick = (e) => {
+        e.preventDefault();
+        if (!discordConfigured) {
+          showToast('Configure Discord settings first', 'error');
+          return;
+        }
+        window.location.href = `/api/discord/authorize?feedId=${id}`;
+      };
+      
+      document.getElementById('editModal').classList.add('show');
+    }
+
+    function closeEditModal() {
+      document.getElementById('editModal').classList.remove('show');
+      editingFeedId = null;
+    }
+
+    async function deleteFeed(id) {
+      if (!confirm('Delete this feed?')) return;
       try {
-        const res = await fetch(`${API}/settings`);
-        const settings = await res.json();
-        
-        document.getElementById('clientId').value = settings.discord_client_id || '';
-        document.getElementById('clientSecret').value = settings.discord_client_secret || '';
-        document.getElementById('checkInterval').value = settings.check_interval_minutes || '10';
-        
-        discordConfigured = !!(settings.discord_client_id && settings.discord_client_secret);
-        updateSettingsStatus();
-        updateConnectButton();
+        await fetch(`${API}/feeds/${id}?workspaceId=${currentWorkspaceId}`, { 
+          method: 'DELETE',
+          credentials: 'include'
+        });
+        showToast('Feed deleted');
+        await loadFeeds();
+        await loadWorkspaces(); // Refresh feed counts
       } catch (e) {
-        console.error('Failed to load settings', e);
+        showToast('Delete failed', 'error');
       }
     }
 
-    function updateConnectButton() {
-      const btn = document.getElementById('connectChannelBtn');
-      if (!discordConfigured) {
-        btn.onclick = (e) => { e.preventDefault(); toggleSettings(true); showToast('Configure Discord settings first', 'error'); };
-      } else {
-        btn.onclick = (e) => { e.preventDefault(); saveFormData(); window.location.href = '/api/discord/authorize'; };
+    async function toggleFeedEnabled(id, enabled, isConnected) {
+      if (enabled && !isConnected) {
+        showToast('Discord not connected. Please edit the feed to connect a channel first.', 'error');
+        return;
       }
-    }
-
-    function updateSettingsStatus() {
-      const status = document.getElementById('settingsStatus');
-      if (discordConfigured) {
-        status.className = 'discord-status connected';
-        status.innerHTML = '<span class="status-dot"></span>Configured';
-      } else {
-        status.className = 'discord-status not-configured';
-        status.innerHTML = '<span class="status-dot"></span>Not Configured';
-      }
-    }
-
-    document.getElementById('settingsForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const form = e.target;
-      form.classList.add('loading');
       
       try {
-        const interval = parseInt(document.getElementById('checkInterval').value) || 10;
-        const res = await fetch(`${API}/settings`, {
+        const res = await fetch(`${API}/feeds/${id}?workspaceId=${currentWorkspaceId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            discord_client_id: document.getElementById('clientId').value,
-            discord_client_secret: document.getElementById('clientSecret').value,
-            check_interval_minutes: interval
-          })
+          body: JSON.stringify({ enabled }),
+          credentials: 'include'
         });
         
-        if (!res.ok) throw new Error('Failed to save');
+        if (!res.ok) throw new Error('Failed to update');
         
-        showToast(`Settings saved (check every ${interval} min)`);
-        await loadSettings();
-        updateCheckScheduleInfo();
+        showToast(enabled ? 'Feed enabled' : 'Feed disabled');
+        loadFeeds();
       } catch (e) {
-        showToast('Failed to save settings', 'error');
-      } finally {
-        form.classList.remove('loading');
+        showToast('Update failed', 'error');
       }
-    });
-    
-    function showToast(message, type = 'success') {
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.textContent = message;
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 3000);
     }
 
+    let currentPreviewFeedId = null;
+
+    async function testFeed(id) {
+      const feed = feedsData.find(f => f.id === id);
+      if (!feed) return;
+
+      if (!feed.webhookUrl) {
+        showToast('Discord not connected. Please edit the feed to connect a channel first.', 'error');
+        return;
+      }
+
+      try {
+        const res = await fetch(`${API}/feeds/${id}/preview?workspaceId=${currentWorkspaceId}`, { credentials: 'include' });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to load preview');
+        }
+        
+        currentPreviewFeedId = id;
+        
+        const avatar = document.getElementById('previewAvatar');
+        if (data.profileImage) {
+          avatar.src = data.profileImage;
+          avatar.style.display = 'block';
+        } else {
+          avatar.src = '';
+          avatar.style.display = 'none';
+        }
+        
+        document.getElementById('previewUsername').textContent = data.feedName;
+        
+        const contentEl = document.getElementById('previewContent');
+        let content = data.content
+          .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+        content = content.replace(/(^|[^"=])(https?:\/\/[^\s<>"]+)/g, '$1<a href="$2" target="_blank">$2</a>');
+        contentEl.innerHTML = content;
+        
+        const channelInfo = data.webhookName ? `Channel: ${data.webhookName}` : '';
+        document.getElementById('previewChannel').textContent = channelInfo;
+        
+        document.getElementById('previewModal').classList.add('show');
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+
+    function closePreviewModal() {
+      document.getElementById('previewModal').classList.remove('show');
+      currentPreviewFeedId = null;
+    }
+
+    // ============================================
+    // EXPORT/IMPORT
+    // ============================================
     async function exportFeeds() {
       try {
-        const res = await fetch('/api/feeds/export');
+        const res = await fetch(`/api/feeds/export?workspaceId=${currentWorkspaceId}`, { credentials: 'include' });
         const data = await res.json();
         const now = new Date();
         const yyyy = now.getFullYear();
@@ -856,15 +2539,17 @@
       try {
         const text = await file.text();
         const data = JSON.parse(text);
-        const res = await fetch('/api/feeds/import', {
+        const res = await fetch(`/api/feeds/import?workspaceId=${currentWorkspaceId}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data),
+          credentials: 'include'
         });
         const result = await res.json();
         if (res.ok) {
           showToast(`Imported ${result.imported} feeds (${result.skipped} skipped)`);
           loadFeeds();
+          loadWorkspaces();
         } else {
           showToast(result.error || 'Import failed', 'error');
         }
@@ -874,117 +2559,9 @@
       input.value = '';
     }
 
-    function formatTime(timestamp) {
-      if (!timestamp) return '-';
-      return new Date(timestamp).toLocaleString('ko-KR');
-    }
-
-    function truncate(str, len) {
-      if (!str) return '';
-      return str.length > len ? str.substring(0, len) + '...' : str;
-    }
-
-    async function loadFeeds() {
-      try {
-        const res = await fetch(`${API}/feeds`);
-        feedsData = await res.json();
-        renderFeeds(feedsData);
-        updateCheckScheduleInfo();
-      } catch (e) {
-        showToast('Failed to load feeds', 'error');
-      }
-    }
-
-    function updateCheckScheduleInfo() {
-      const info = document.getElementById('checkScheduleInfo');
-      const interval = parseInt(document.getElementById('checkInterval').value) || 10;
-      
-      let lastCheck = null;
-      for (const feed of feedsData) {
-        if (feed.lastCheckedAt) {
-          const t = new Date(feed.lastCheckedAt);
-          if (!lastCheck || t > lastCheck) lastCheck = t;
-        }
-      }
-      
-      if (lastCheck) {
-        const nextCheck = new Date(lastCheck.getTime() + interval * 60 * 1000);
-        const now = new Date();
-        const diff = nextCheck - now;
-        
-        let nextText;
-        if (diff <= 0) {
-          nextText = 'soon';
-        } else {
-          const mins = Math.ceil(diff / 60000);
-          nextText = mins >= 60 ? `${Math.floor(mins/60)}h ${mins%60}m` : `${mins}m`;
-        }
-        
-        info.textContent = `Last: ${lastCheck.toLocaleString('ko-KR')} / Next: ${nextText}`;
-      } else {
-        info.textContent = 'No checks yet';
-      }
-    }
-
-    function renderFeeds(feeds) {
-      const list = document.getElementById('feedList');
-      if (feeds.length === 0) {
-        list.innerHTML = '<div class="empty">No feeds registered yet</div>';
-        return;
-      }
-      const sorted = [...feeds].sort((a, b) => {
-        if (!a.lastSentAt && !b.lastSentAt) return 0;
-        if (!a.lastSentAt) return 1;
-        if (!b.lastSentAt) return -1;
-        return new Date(b.lastSentAt) - new Date(a.lastSentAt);
-      });
-      list.innerHTML = sorted.map(feed => {
-        const isConnected = !!feed.webhookUrl;
-        const isEnabled = feed.enabled !== false;
-
-        return `
-          <div class="feed-item${isEnabled ? '' : ' disabled'}" data-id="${feed.id}">
-            <img class="feed-avatar" src="${feed.profileImage || `data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23475569%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 font-size=%2240%22 text-anchor=%22middle%22 fill=%22%2394a3b8%22>${feed.name.charAt(0).toUpperCase()}</text></svg>`}" 
-                 onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23475569%22 width=%22100%22 height=%22100%22/></svg>'">
-            <div class="feed-info">
-              <div class="feed-name">${escapeHtml(feed.name)}</div>
-              <div class="feed-url">${escapeHtml(feed.url)}</div>
-              <div class="feed-meta">
-                <span>Checked: ${formatTime(feed.lastCheckedAt)}${feed.lastCheckedTitle ? ` - ${escapeHtml(truncate(feed.lastCheckedTitle, 30))}` : ''}</span>
-              </div>
-              <div class="feed-meta">
-                <span>Sent: ${formatTime(feed.lastSentAt)}${feed.lastSentTitle ? ` - ${escapeHtml(truncate(feed.lastSentTitle, 30))}` : ''}</span>
-              </div>
-            </div>
-            <div class="feed-actions">
-              <button class="btn btn-secondary btn-sm" onclick="testFeed(${feed.id})">Test</button>
-              <button class="btn btn-secondary btn-sm" onclick="openEditModal(${feed.id})">Edit</button>
-              <button class="btn btn-danger btn-sm" onclick="deleteFeed(${feed.id})">Delete</button>
-              <div class="toggle-switch${isEnabled ? ' active' : ''}" onclick="toggleFeedEnabled(${feed.id}, ${!isEnabled}, ${isConnected})" title="${isEnabled ? 'Click to disable' : 'Click to enable'}"></div>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
-
-    function updateProfilePreview(inputId, previewId) {
-      const input = document.getElementById(inputId);
-      const preview = document.getElementById(previewId);
-      if (input.value) {
-        preview.src = input.value;
-        preview.style.display = 'block';
-        preview.onerror = () => { preview.style.display = 'none'; };
-      } else {
-        preview.style.display = 'none';
-      }
-    }
-
+    // ============================================
+    // RSS FIELDS & TEMPLATE BUILDER
+    // ============================================
     async function fetchRssFields(urlInputId, tagsContainerId, templateInputId) {
       const url = document.getElementById(urlInputId).value;
       if (!url) {
@@ -1000,7 +2577,8 @@
         const res = await fetch(`${API}/feeds/preview-rss`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url })
+          body: JSON.stringify({ url }),
+          credentials: 'include'
         });
 
         if (!res.ok) {
@@ -1009,9 +2587,6 @@
         }
 
         const { fields, sample } = await res.json();
-        
-        const hasTitle = fields.includes('title');
-        const hasLink = fields.includes('link');
         
         const tagsHtml = fields.map(field => 
           `<span class="tag" draggable="true" data-value="{${field}}" data-target="${templateInputId}" title="${escapeHtml(sample[field] || '')}">{${field}}</span>`
@@ -1201,6 +2776,9 @@
       syncTextareaFromBuilder(builderId);
     }
 
+    // ============================================
+    // CONTEXT MENU
+    // ============================================
     let activeContextMenuBuilder = null;
     let activeContextMenuChip = null;
     const contextMenu = document.getElementById('contextMenu');
@@ -1355,18 +2933,9 @@
       hideContextMenu();
     }
 
-    document.addEventListener('click', (e) => {
-      if (!contextMenu.contains(e.target)) {
-        hideContextMenu();
-      }
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        hideContextMenu();
-      }
-    });
-
+    // ============================================
+    // DRAG AND DROP
+    // ============================================
     let dropIndicator = null;
     let currentDropIndex = -1;
     const initializedBuilders = new Set();
@@ -1432,7 +3001,6 @@
                 builder.insertBefore(chip, targetChip);
               }
             } else {
-              // Appending at end - check if last chip is newline
               if (newChips.length > 0) {
                 const lastChip = newChips[newChips.length - 1];
                 if (lastChip.classList.contains('newline-chip')) {
@@ -1557,280 +3125,10 @@
       renderTemplateBuilder(builderId, document.getElementById(templateInputId).value);
     }
 
-    document.getElementById('addForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const form = e.target;
-      form.classList.add('loading');
-      
-      try {
-        let webhookData = {};
-        if (connectedChannel) {
-          webhookData = {
-            webhookUrl: connectedChannel.url,
-            webhookChannelId: connectedChannel.channelId,
-            webhookGuildId: connectedChannel.guildId,
-            webhookName: connectedChannel.name
-          };
-        }
-
-        const res = await fetch(`${API}/feeds`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: document.getElementById('name').value,
-            url: document.getElementById('url').value,
-            profileImage: document.getElementById('profileImage').value || undefined,
-            messageTemplate: document.getElementById('messageTemplate').value || undefined,
-            ...webhookData
-          })
-        });
-        
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || 'Failed to add feed');
-        }
-        
-        form.reset();
-        closeAddModal();
-        const msg = connectedChannel ? 'Feed added with Discord channel.' : 'Feed added. Connect Discord to start receiving notifications.';
-        showToast(msg);
-        await loadFeeds();
-      } catch (e) {
-        showToast(e.message, 'error');
-      } finally {
-        form.classList.remove('loading');
-      }
-    });
-
-    document.getElementById('checkBtn').addEventListener('click', async function() {
-      this.classList.add('loading');
-      this.textContent = 'Checking...';
-      try {
-        await fetch(`${API}/check`, { method: 'POST' });
-        showToast('Feed check completed');
-        loadFeeds();
-      } catch (e) {
-        showToast('Check failed', 'error');
-      } finally {
-        this.classList.remove('loading');
-        this.textContent = 'Check Now';
-      }
-    });
-
-    async function deleteFeed(id) {
-      if (!confirm('Delete this feed?')) return;
-      try {
-        await fetch(`${API}/feeds/${id}`, { method: 'DELETE' });
-        showToast('Feed deleted');
-        await loadFeeds();
-      } catch (e) {
-        showToast('Delete failed', 'error');
-      }
-    }
-
-    function openAddModal() {
-      document.getElementById('addForm').reset();
-      document.getElementById('messageTemplate').value = '[{title}]({link})\n{description}';
-      connectedChannel = null;
-      updateChannelStatus();
-      updateProfilePreview('profileImage', 'profilePreview');
-      document.getElementById('rssFields').style.display = 'none';
-      renderTemplateBuilder('templateBuilder', '[{title}]({link})\n{description}');
-      document.getElementById('addModal').classList.add('show');
-      setupAddFormValidation();
-      updateAddFormValidity();
-    }
-
-    function closeAddModal() {
-      document.getElementById('addModal').classList.remove('show');
-      clearFormData();
-    }
-
-    let editingFeedId = null;
-
-    function openEditModal(id) {
-      const feed = feedsData.find(f => f.id === id);
-      if (!feed) return;
-
-      editingFeedId = id;
-      document.getElementById('editId').value = id;
-      document.getElementById('editName').value = feed.name;
-      document.getElementById('editUrl').value = feed.url;
-      const templateValue = feed.messageTemplate || '[{title}]({link})\n{description}';
-      document.getElementById('editMessageTemplate').value = templateValue;
-      document.getElementById('editProfileImage').value = feed.profileImage || '';
-      document.getElementById('editRssFields').style.display = 'none';
-      renderTemplateBuilder('editTemplateBuilder', templateValue);
-      updateProfilePreview('editProfileImage', 'editProfilePreview');
-      
-      const status = document.getElementById('editChannelStatus');
-      const btn = document.getElementById('editConnectChannelBtn');
-      
-      if (feed.webhookUrl) {
-        status.className = 'channel-info connected';
-        status.textContent = feed.webhookName ? `Webhook: ${feed.webhookName}` : 'Webhook connected';
-        btn.textContent = 'Change';
-      } else {
-        status.className = 'channel-info not-connected';
-        status.textContent = 'Not connected';
-        btn.textContent = 'Connect';
-      }
-      
-      btn.onclick = (e) => {
-        e.preventDefault();
-        if (!discordConfigured) {
-          showToast('Configure Discord settings first', 'error');
-          return;
-        }
-        window.location.href = `/api/discord/authorize?feedId=${id}`;
-      };
-      
-      document.getElementById('editModal').classList.add('show');
-    }
-
-    function closeEditModal() {
-      document.getElementById('editModal').classList.remove('show');
-      editingFeedId = null;
-    }
-
-    document.getElementById('editForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const form = e.target;
-      form.classList.add('loading');
-      
-      const id = document.getElementById('editId').value;
-      
-      try {
-        const res = await fetch(`${API}/feeds/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: document.getElementById('editName').value,
-            url: document.getElementById('editUrl').value,
-            messageTemplate: document.getElementById('editMessageTemplate').value || null,
-            profileImage: document.getElementById('editProfileImage').value || null
-          })
-        });
-        
-        if (!res.ok) throw new Error('Failed to update');
-        
-        closeEditModal();
-        showToast('Feed updated');
-        await loadFeeds();
-      } catch (e) {
-        showToast('Update failed', 'error');
-      } finally {
-        form.classList.remove('loading');
-      }
-    });
-
-    document.getElementById('editModal').addEventListener('click', (e) => {
-      if (e.target.id === 'editModal') closeEditModal();
-    });
-
-    async function toggleFeedEnabled(id, enabled, isConnected) {
-      if (enabled && !isConnected) {
-        showToast('Discord not connected. Please edit the feed to connect a channel first.', 'error');
-        return;
-      }
-      
-      try {
-        const res = await fetch(`${API}/feeds/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ enabled })
-        });
-        
-        if (!res.ok) throw new Error('Failed to update');
-        
-        showToast(enabled ? 'Feed enabled' : 'Feed disabled');
-        loadFeeds();
-      } catch (e) {
-        showToast('Update failed', 'error');
-      }
-    }
-
-    let currentPreviewFeedId = null;
-
-    async function testFeed(id) {
-      const feed = feedsData.find(f => f.id === id);
-      if (!feed) return;
-
-      if (!feed.webhookUrl) {
-        showToast('Discord not connected. Please edit the feed to connect a channel first.', 'error');
-        return;
-      }
-
-      try {
-        const res = await fetch(`${API}/feeds/${id}/preview`);
-        const data = await res.json();
-        
-        if (!res.ok) {
-          throw new Error(data.error || 'Failed to load preview');
-        }
-        
-        currentPreviewFeedId = id;
-        
-        const avatar = document.getElementById('previewAvatar');
-        if (data.profileImage) {
-          avatar.src = data.profileImage;
-          avatar.style.display = 'block';
-        } else {
-          avatar.src = '';
-          avatar.style.display = 'none';
-        }
-        
-        document.getElementById('previewUsername').textContent = data.feedName;
-        
-        const contentEl = document.getElementById('previewContent');
-        let content = data.content
-          .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>');
-        content = content.replace(/(^|[^"=])(https?:\/\/[^\s<>"]+)/g, '$1<a href="$2" target="_blank">$2</a>');
-        contentEl.innerHTML = content;
-        
-        const channelInfo = data.webhookName ? `Channel: ${data.webhookName}` : '';
-        document.getElementById('previewChannel').textContent = channelInfo;
-        
-        document.getElementById('previewModal').classList.add('show');
-      } catch (e) {
-        showToast(e.message, 'error');
-      }
-    }
-
-    function closePreviewModal() {
-      document.getElementById('previewModal').classList.remove('show');
-      currentPreviewFeedId = null;
-    }
-
-    document.getElementById('sendTestBtn').addEventListener('click', async () => {
-      if (!currentPreviewFeedId) return;
-      
-      const btn = document.getElementById('sendTestBtn');
-      btn.disabled = true;
-      btn.textContent = 'Sending...';
-      
-      try {
-        const res = await fetch(`${API}/feeds/${currentPreviewFeedId}/test`, { method: 'POST' });
-        const data = await res.json();
-        
-        if (!res.ok) {
-          throw new Error(data.error || 'Test failed');
-        }
-        
-        closePreviewModal();
-        showToast(data.message || 'Test message sent successfully!');
-        loadFeeds();
-      } catch (e) {
-        showToast(e.message, 'error');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Send to Discord';
-      }
-    });
-
-    document.getElementById('checkInterval').addEventListener('input', updateCheckScheduleInfo);
-
-    loadSettings().then(loadFeeds);
+    // ============================================
+    // START APP
+    // ============================================
+    init();
   </script>
 </body>
 </html>

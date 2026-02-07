@@ -35,8 +35,10 @@ async function fetchWebhookInfo(webhookUrl: string): Promise<string | null> {
 }
 
 function getRedirectUri(req: { protocol: string; get: (name: string) => string | undefined }) {
-  const host = req.get("host") || "localhost:3000";
-  const protocol = process.env.NODE_ENV === "production" ? "https" : req.protocol;
+  // Support reverse proxy headers
+  const host = req.get("x-forwarded-host") || req.get("host") || "localhost:3000";
+  const forwardedProto = req.get("x-forwarded-proto");
+  const protocol = forwardedProto || (process.env.NODE_ENV === "production" ? "https" : req.protocol);
   return `${protocol}://${host}/api/discord/callback`;
 }
 
@@ -92,6 +94,9 @@ router.get("/callback", async (req, res) => {
   }
 
   try {
+    const redirectUri = getRedirectUri(req);
+    console.log("Token exchange redirect_uri:", redirectUri);
+
     const tokenResponse = await fetch(`${DISCORD_API}/oauth2/token`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -100,13 +105,20 @@ router.get("/callback", async (req, res) => {
         client_secret: clientSecret,
         grant_type: "authorization_code",
         code: code as string,
-        redirect_uri: getRedirectUri(req),
+        redirect_uri: redirectUri,
       }),
     });
 
     if (!tokenResponse.ok) {
       const err = await tokenResponse.text();
       console.error("Token exchange failed:", err);
+      console.error("Used redirect_uri:", redirectUri);
+      console.error("Request headers:", JSON.stringify({
+        host: req.get("host"),
+        protocol: req.protocol,
+        "x-forwarded-proto": req.get("x-forwarded-proto"),
+        "x-forwarded-host": req.get("x-forwarded-host"),
+      }));
       res.redirect("/?error=token_exchange");
       return;
     }

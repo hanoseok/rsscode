@@ -8,9 +8,7 @@ services:
     volumes:
       - rsscode_data:/data
     environment:
-      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
-      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
-      - CHECK_INTERVAL_MINUTES=${CHECK_INTERVAL_MINUTES:-10}
+      - SESSION_SECRET=${SESSION_SECRET:-rsscode-secret-change-in-production}
 
 volumes:
   rsscode_data:

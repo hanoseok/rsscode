@@ -41,7 +41,6 @@ docker run -d \
   --name rsscode \
   -p 3000:3000 \
   -v rsscode_data:/data \
-  -e SESSION_SECRET=your-random-secret-key \
   hanoseok/rsscode:latest
 ```
 
@@ -56,8 +55,6 @@ services:
       - "32770:3000"
     volumes:
       - rsscode_data:/data
-    environment:
-      - SESSION_SECRET=your-random-secret-key
 
 volumes:
   rsscode_data:
@@ -133,7 +130,6 @@ docker-compose up -d
 
 | 변수 | 설명 | 기본값 |
 |------|------|--------|
-| `SESSION_SECRET` | 세션 암호화 키 (프로덕션 필수) | `rsscode-secret-change-in-production` |
 | `DATABASE_URL` | SQLite DB 경로 | `/data/rsscode.db` |
 | `PORT` | 서버 포트 | `3000` |
 
@@ -170,8 +166,6 @@ Discord Developer Portal에서 반드시 **정확한 Redirect URI**를 등록해
 2. **이미지** → `hanoseok/rsscode` → **실행**
 3. **포트 설정**: 로컬 포트 → 3000
 4. **볼륨**: `/data` 폴더 마운트
-5. **환경변수** 추가:
-   - `SESSION_SECRET`
 
 ### 역방향 프록시 설정
 

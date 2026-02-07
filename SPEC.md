@@ -180,7 +180,6 @@ feeds 1──N posts
 - **세션 기반** (express-session)
 - 쿠키: `connect.sid`, httpOnly, 7일 유효
 - 비밀번호: bcryptjs (salt rounds: 10)
-- 프로덕션 시 `SESSION_SECRET` 환경변수 필수
 
 ### 5.2 사용자 유형
 
@@ -573,13 +572,10 @@ Discord OAuth 콜백. state에서 workspaceId를 추출하여 해당 워크스�
 
 | 변수 | 필수 | 설명 | 기본값 |
 |------|------|------|--------|
-| `SESSION_SECRET` | △ | 세션 암호화 키 (프로덕션 필수) | `rsscode-secret-change-in-production` |
 | `DATABASE_URL` | - | SQLite DB 경로 | `/data/rsscode.db` |
 | `PORT` | - | 서버 포트 | `3000` |
 | `NODE_ENV` | - | 환경 (`production` / `development`) | - |
 
-> △ = 프로덕션 환경에서 필수
->
 > Discord Client ID/Secret, 체크 주기는 환경변수가 아닌 **웹 UI의 워크스페이스별 Settings**에서 설정합니다.
 
 ---
@@ -833,7 +829,6 @@ rsscode/
 - **관리자 기능**: 사용자 목록 조회, 권한 변경, 비밀번호 초기화, 삭제
 - **웹 UI 전면 개편**: LNB 기반 레이아웃, 로그인/회원가입 화면, 관리자 페이지
 - **기존 환경변수 제거**: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `CHECK_INTERVAL_MINUTES`는 더 이상 환경변수로 설정하지 않고 워크스페이스별 Settings에서 관리
-- **새 환경변수**: `SESSION_SECRET` (세션 암호화 키)
 - **DB 스키마 변경**: users, workspaces, workspace_members, workspace_settings 테이블 추가, settings(key-value) 테이블 제거
 
 ---

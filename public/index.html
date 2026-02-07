@@ -2539,10 +2539,11 @@
       try {
         const text = await file.text();
         const data = JSON.parse(text);
-        const res = await fetch(`/api/feeds/import?workspaceId=${currentWorkspaceId}`, {
+        const feedsArray = Array.isArray(data) ? data : data.feeds;
+        const res = await fetch('/api/feeds/import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
+          body: JSON.stringify({ feeds: feedsArray, workspaceId: currentWorkspaceId }),
           credentials: 'include'
         });
         const result = await res.json();

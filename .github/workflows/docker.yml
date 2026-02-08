@@ -45,6 +45,7 @@ jobs:
           images: hanoseok/rsscode
           tags: |
             type=raw,value=latest
+            type=semver,pattern={{version}}
 
       - name: Build and push
         uses: docker/build-push-action@v5

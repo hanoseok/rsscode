@@ -36,7 +36,7 @@ export const feeds = sqliteTable("feeds", {
   workspaceId: integer("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name").notNull(),
-  url: text("url").notNull().unique(),
+  url: text("url").notNull(),
   profileImage: text("profile_image"),
   webhookUrl: text("webhook_url"),
   webhookChannelId: text("webhook_channel_id"),

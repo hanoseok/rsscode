@@ -86,6 +86,8 @@ export function initDatabase() {
     "ALTER TABLE feeds ADD COLUMN webhook_name TEXT",
     "ALTER TABLE feeds ADD COLUMN message_template TEXT",
     "ALTER TABLE feeds ADD COLUMN workspace_id INTEGER REFERENCES workspaces(id) ON DELETE CASCADE",
+    "DROP INDEX IF EXISTS feeds_url_unique",
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_feeds_workspace_url ON feeds(workspace_id, url)",
   ];
 
   for (const sql of migrations) {

@@ -157,7 +157,7 @@ router.post("/", async (req: AuthRequest, res: Response) => {
       error instanceof Error &&
       error.message.includes("UNIQUE constraint failed")
     ) {
-      res.status(409).json({ error: "Feed URL already exists" });
+      res.status(409).json({ error: "Feed URL already exists in this workspace" });
       return;
     }
     res.status(500).json({ error: "Failed to create feed" });

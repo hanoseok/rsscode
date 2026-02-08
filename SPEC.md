@@ -787,7 +787,7 @@ rsscode/
 |--------|------|
 | `v*` 태그 push | `latest` |
 
-**플랫폼**: `linux/amd64`, `linux/arm64` (Synology NAS 호환)
+**플랫폼**: `linux/amd64`
 
 ### 12.2 CI/CD Pipeline
 
@@ -822,7 +822,7 @@ rsscode/
 | v0.8.1 | 2026-02-05 | 프로젝트명 RSScode로 변경 |
 | v0.8.2 | 2026-02-05 | 첫 체크 시 최신 글 자동 전송 |
 | v1.0.0 | 2026-02-07 | 사용자 인증, 워크스페이스, 워크스페이스별 설정, 관리자 기능 |
-| v1.0.1 | 2026-02-08 | 워크스페이스 선택 전 설정 로드 버그 수정, Docker 워크플로우 개선 |
+| v1.0.6 | 2026-02-08 | 버그 수정, Docker 워크플로우 개선 |
 
 ### v1.0.0 상세 변경사항
 - **사용자 인증**: 세션 기반 로그인/회원가입 (bcryptjs)
@@ -834,9 +834,12 @@ rsscode/
 - **기존 환경변수 제거**: `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, `CHECK_INTERVAL_MINUTES`는 더 이상 환경변수로 설정하지 않고 워크스페이스별 Settings에서 관리
 - **DB 스키마 변경**: users, workspaces, workspace_members, workspace_settings 테이블 추가, settings(key-value) 테이블 제거
 
-### v1.0.1 상세 변경사항
-- **버그 수정**: 워크스페이스 선택 전 `loadSettings()` 호출되어 `workspaceId=null` 에러 발생하던 문제 수정
-- **Docker 워크플로우**: arm64 플랫폼 지원 추가 (Synology NAS 호환)
+### v1.0.6 상세 변경사항
+- **버그 수정**: 워크스페이스 선택 전 `loadSettings()` 호출 시 `workspaceId=null` 에러 수정
+- **Docker 워크플로우**: 
+  - 이미지 이름 `hanoseok/rsscode`로 하드코딩
+  - 태그 푸시 시 `latest` + 버전 태그 동시 생성
+  - amd64 플랫폼 빌드 (arm64는 QEMU 이슈로 제외)
 
 ---
 

@@ -2,14 +2,13 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { testDb } from "./setup.js";
 import { users, workspaces, workspaceMembers, feeds } from "../db/schema.js";
 
-vi.mock("../db/index.js", async () => {
-  const { testDb } = await import("./setup.js");
-  return { db: testDb };
-});
+vi.mock("../db/index.js", () => ({ db: testDb }));
 
-const { getUserWorkspaceIds, userCanAccessWorkspace, userCanAccessFeed } = await import(
-  "../lib/workspaces.js"
-);
+import {
+  getUserWorkspaceIds,
+  userCanAccessWorkspace,
+  userCanAccessFeed,
+} from "../lib/workspaces.js";
 
 describe("Workspace access helpers", () => {
   let aliceId: number;

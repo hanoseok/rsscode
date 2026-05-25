@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import * as schema from "./schema.js";
 import { existsSync, mkdirSync } from "fs";
 import { dirname } from "path";
+import { randomBytes } from "crypto";
 
 const dbPath = process.env.DATABASE_URL || "./data/rsscode.db";
 
@@ -109,12 +110,21 @@ async function initAdminAndMigrate() {
   const existingAdmin = db.select().from(users).where(eq(users.username, "admin")).get();
   
   if (!existingAdmin) {
-    const passwordHash = await hashPassword("admin");
+    const initialPassword =
+      process.env.ADMIN_INITIAL_PASSWORD || randomBytes(12).toString("base64url");
+    const passwordHash = await hashPassword(initialPassword);
     const adminResult = db.insert(users).values({
       username: "admin",
       passwordHash,
       isAdmin: true,
     }).returning().get();
+
+    console.log("=".repeat(60));
+    console.log("Initial admin user created.");
+    console.log(`  username: admin`);
+    console.log(`  password: ${initialPassword}`);
+    console.log("Change this password immediately after first login.");
+    console.log("=".repeat(60));
 
     const workspaceResult = db.insert(workspaces).values({
       name: "my workspace",

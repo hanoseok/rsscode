@@ -29,7 +29,7 @@ interface WebhookInfo {
 
 async function fetchWebhookInfo(webhookUrl: string): Promise<string | null> {
   try {
-    const res = await fetch(webhookUrl);
+    const res = await fetch(webhookUrl, { signal: AbortSignal.timeout(5_000) });
     if (!res.ok) return null;
     const data = await res.json() as WebhookInfo;
     return data.name || null;
@@ -151,6 +151,7 @@ router.get("/callback", async (req: AuthRequest, res) => {
         code: code as string,
         redirect_uri: redirectUri,
       }),
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!tokenResponse.ok) {

@@ -1,10 +1,10 @@
 import { Router, Response } from "express";
 import { db } from "../db/index.js";
 import { feeds } from "../db/schema.js";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { getDiscordCredentials } from "./settings.js";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
-import { userCanAccessWorkspace, userCanAccessFeed } from "../lib/workspaces.js";
+import { getUserWorkspaceIds, userCanAccessWorkspace, userCanAccessFeed } from "../lib/workspaces.js";
 
 const router = Router();
 
@@ -201,9 +201,17 @@ router.get("/callback", async (req: AuthRequest, res) => {
   }
 });
 
-router.get("/channels", async (_req, res) => {
+router.get("/channels", async (req: AuthRequest, res) => {
   try {
-    const allFeeds = await db.select().from(feeds);
+    const userWorkspaceIds = getUserWorkspaceIds(req.userId!);
+    if (userWorkspaceIds.length === 0) {
+      res.json([]);
+      return;
+    }
+    const allFeeds = await db
+      .select()
+      .from(feeds)
+      .where(inArray(feeds.workspaceId, userWorkspaceIds));
     const channelMap = new Map<string, { webhookUrl: string; channelId: string; guildId: string; feedNames: string[] }>();
 
     for (const feed of allFeeds) {
@@ -235,9 +243,18 @@ router.get("/channels", async (_req, res) => {
   }
 });
 
-router.delete("/:feedId", async (req, res) => {
+router.delete("/:feedId", async (req: AuthRequest, res) => {
   try {
-    const feedId = parseInt(req.params.feedId);
+    const feedIdParam = req.params.feedId;
+    const feedId = parseInt(Array.isArray(feedIdParam) ? feedIdParam[0] : feedIdParam);
+    if (!Number.isFinite(feedId)) {
+      res.status(400).json({ error: "Invalid feedId" });
+      return;
+    }
+    if (!userCanAccessFeed(req.userId!, feedId)) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
 
     await db
       .update(feeds)
@@ -245,6 +262,7 @@ router.delete("/:feedId", async (req, res) => {
         webhookUrl: null,
         webhookChannelId: null,
         webhookGuildId: null,
+        webhookName: null,
       })
       .where(eq(feeds.id, feedId));
 

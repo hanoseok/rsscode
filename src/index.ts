@@ -19,19 +19,42 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = parseInt(process.env.PORT || "3000");
 
-app.set("trust proxy", true);
+app.set("trust proxy", 1);
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    if (!origin) {
+      callback(null, true);
+      return;
+    }
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error("Origin not allowed by CORS"));
+  },
   credentials: true,
 }));
 app.use(express.json());
+
+const sessionSecret = process.env.SESSION_SECRET;
+if (process.env.NODE_ENV === "production" && !sessionSecret) {
+  throw new Error("SESSION_SECRET environment variable is required in production");
+}
+
 app.use(session({
-  secret: process.env.SESSION_SECRET || "rsscode-secret-change-in-production",
+  secret: sessionSecret || "rsscode-dev-secret-do-not-use-in-production",
   resave: false,
   saveUninitialized: false,
   cookie: {
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
+    sameSite: "lax",
     maxAge: 7 * 24 * 60 * 60 * 1000,
   },
 }));

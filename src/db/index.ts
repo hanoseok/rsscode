@@ -15,7 +15,7 @@ if (!existsSync(dbDir)) {
 const sqlite = new Database(dbPath);
 export const db = drizzle(sqlite, { schema });
 
-export function initDatabase() {
+export async function initDatabase(): Promise<void> {
   sqlite.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -98,7 +98,7 @@ export function initDatabase() {
     }
   }
 
-  initAdminAndMigrate();
+  await initAdminAndMigrate();
   console.log("Database initialized");
 }
 

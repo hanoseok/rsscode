@@ -91,9 +91,15 @@ app.get("*", (_req, res) => {
   res.sendFile(join(__dirname, "../public/index.html"));
 });
 
-initDatabase();
+async function main() {
+  await initDatabase();
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+    startScheduler();
+  });
+}
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on http://0.0.0.0:${PORT}`);
-  startScheduler();
+main().catch((err) => {
+  console.error("Fatal startup error:", err);
+  process.exit(1);
 });

@@ -57,24 +57,18 @@ export async function checkFeed(feed: Feed): Promise<number> {
       const isFirstItem = rssFeed.items.indexOf(item) === 0;
 
       if (isFirstCheck && !isFirstItem) {
-        await db.insert(posts).values({
-          feedId: feed.id,
-          guid,
-          title: item.title,
-          link: item.link,
-          publishedAt,
-        });
+        await db
+          .insert(posts)
+          .values({ feedId: feed.id, guid, title: item.title, link: item.link, publishedAt })
+          .onConflictDoNothing();
         continue;
       }
 
       if (feed.lastSentAt && publishedAt && publishedAt <= feed.lastSentAt) {
-        await db.insert(posts).values({
-          feedId: feed.id,
-          guid,
-          title: item.title,
-          link: item.link,
-          publishedAt,
-        });
+        await db
+          .insert(posts)
+          .values({ feedId: feed.id, guid, title: item.title, link: item.link, publishedAt })
+          .onConflictDoNothing();
         continue;
       }
 
@@ -98,13 +92,10 @@ export async function checkFeed(feed: Feed): Promise<number> {
       });
 
       if (sent) {
-        await db.insert(posts).values({
-          feedId: feed.id,
-          guid,
-          title: item.title,
-          link: item.link,
-          publishedAt,
-        });
+        await db
+          .insert(posts)
+          .values({ feedId: feed.id, guid, title: item.title, link: item.link, publishedAt })
+          .onConflictDoNothing();
 
         const now = new Date();
         await db

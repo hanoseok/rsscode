@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, uniqueIndex } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
@@ -21,61 +21,88 @@ export const workspaces = sqliteTable("workspaces", {
     .$defaultFn(() => new Date()),
 });
 
-export const workspaceMembers = sqliteTable("workspace_members", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  workspaceId: integer("workspace_id")
-    .notNull()
-    .references(() => workspaces.id, { onDelete: "cascade" }),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  role: text("role").notNull().default("member"),
-});
+export const workspaceMembers = sqliteTable(
+  "workspace_members",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    workspaceId: integer("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: text("role").notNull().default("member"),
+  },
+  (t) => ({
+    workspaceUserUnique: uniqueIndex("workspace_members_workspace_user_unique").on(
+      t.workspaceId,
+      t.userId,
+    ),
+  }),
+);
 
-export const feeds = sqliteTable("feeds", {
-  workspaceId: integer("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  name: text("name").notNull(),
-  url: text("url").notNull(),
-  profileImage: text("profile_image"),
-  webhookUrl: text("webhook_url"),
-  webhookChannelId: text("webhook_channel_id"),
-  webhookGuildId: text("webhook_guild_id"),
-  webhookName: text("webhook_name"),
-  messageTemplate: text("message_template"),
-  enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
-  createdAt: integer("created_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-  lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
-  lastCheckedTitle: text("last_checked_title"),
-  lastSentAt: integer("last_sent_at", { mode: "timestamp" }),
-  lastSentTitle: text("last_sent_title"),
-});
+export const feeds = sqliteTable(
+  "feeds",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    workspaceId: integer("workspace_id").references(() => workspaces.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    profileImage: text("profile_image"),
+    webhookUrl: text("webhook_url"),
+    webhookChannelId: text("webhook_channel_id"),
+    webhookGuildId: text("webhook_guild_id"),
+    webhookName: text("webhook_name"),
+    messageTemplate: text("message_template"),
+    enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+    createdAt: integer("created_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    lastCheckedAt: integer("last_checked_at", { mode: "timestamp" }),
+    lastCheckedTitle: text("last_checked_title"),
+    lastSentAt: integer("last_sent_at", { mode: "timestamp" }),
+    lastSentTitle: text("last_sent_title"),
+  },
+  (t) => ({
+    workspaceUrlUnique: uniqueIndex("idx_feeds_workspace_url").on(t.workspaceId, t.url),
+  }),
+);
 
-export const posts = sqliteTable("posts", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  feedId: integer("feed_id")
-    .notNull()
-    .references(() => feeds.id, { onDelete: "cascade" }),
-  guid: text("guid").notNull(),
-  title: text("title").notNull(),
-  link: text("link").notNull(),
-  publishedAt: integer("published_at", { mode: "timestamp" }),
-  sentAt: integer("sent_at", { mode: "timestamp" })
-    .notNull()
-    .$defaultFn(() => new Date()),
-});
+export const posts = sqliteTable(
+  "posts",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    feedId: integer("feed_id")
+      .notNull()
+      .references(() => feeds.id, { onDelete: "cascade" }),
+    guid: text("guid").notNull(),
+    title: text("title").notNull(),
+    link: text("link").notNull(),
+    publishedAt: integer("published_at", { mode: "timestamp" }),
+    sentAt: integer("sent_at", { mode: "timestamp" })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (t) => ({
+    feedGuidUnique: uniqueIndex("posts_feed_guid_unique").on(t.feedId, t.guid),
+  }),
+);
 
-export const workspaceSettings = sqliteTable("workspace_settings", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
-  workspaceId: integer("workspace_id")
-    .notNull()
-    .references(() => workspaces.id, { onDelete: "cascade" }),
-  discordClientId: text("discord_client_id"),
-  discordClientSecret: text("discord_client_secret"),
-  checkIntervalMinutes: integer("check_interval_minutes").notNull().default(10),
-});
+export const workspaceSettings = sqliteTable(
+  "workspace_settings",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    workspaceId: integer("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    discordClientId: text("discord_client_id"),
+    discordClientSecret: text("discord_client_secret"),
+    checkIntervalMinutes: integer("check_interval_minutes").notNull().default(10),
+  },
+  (t) => ({
+    workspaceUnique: uniqueIndex("workspace_settings_workspace_unique").on(t.workspaceId),
+  }),
+);
 
 export type WorkspaceSettings = typeof workspaceSettings.$inferSelect;
 

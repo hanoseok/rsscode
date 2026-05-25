@@ -1,9 +1,10 @@
 import { Router, Response } from "express";
 import { db } from "../db/index.js";
 import { feeds } from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { getDiscordCredentials } from "./settings.js";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
+import { userCanAccessWorkspace, userCanAccessFeed } from "../lib/workspaces.js";
 
 const router = Router();
 
@@ -45,20 +46,33 @@ function getRedirectUri(req: { protocol: string; get: (name: string) => string |
   return `${protocol}://${host}/api/discord/callback`;
 }
 
-router.get("/authorize", async (req, res) => {
+router.get("/authorize", async (req: AuthRequest, res) => {
   const workspaceId = req.query.workspaceId as string | undefined;
   if (!workspaceId) {
     res.redirect("/?error=workspace_required");
     return;
   }
 
-  const { clientId } = await getDiscordCredentials(parseInt(workspaceId));
-  if (!clientId) {
-    res.redirect("/?error=discord_not_configured");
+  const workspaceIdNum = parseInt(workspaceId);
+  if (!Number.isFinite(workspaceIdNum) || !userCanAccessWorkspace(req.userId!, workspaceIdNum)) {
+    res.redirect("/?error=workspace_forbidden");
     return;
   }
 
   const feedId = req.query.feedId as string | undefined;
+  if (feedId) {
+    const feedIdNum = parseInt(feedId);
+    if (!Number.isFinite(feedIdNum) || !userCanAccessFeed(req.userId!, feedIdNum)) {
+      res.redirect("/?error=feed_forbidden");
+      return;
+    }
+  }
+
+  const { clientId } = await getDiscordCredentials(workspaceIdNum);
+  if (!clientId) {
+    res.redirect("/?error=discord_not_configured");
+    return;
+  }
   const redirectUri = encodeURIComponent(getRedirectUri(req));
   const state = Buffer.from(JSON.stringify({ feedId: feedId || null, workspaceId })).toString("base64url");
 
@@ -73,7 +87,7 @@ router.get("/authorize", async (req, res) => {
   res.redirect(authUrl);
 });
 
-router.get("/callback", async (req, res) => {
+router.get("/callback", async (req: AuthRequest, res) => {
   const { code, state, error } = req.query;
 
   if (error) {
@@ -102,7 +116,21 @@ router.get("/callback", async (req, res) => {
     return;
   }
 
-  const { clientId, clientSecret } = await getDiscordCredentials(parseInt(workspaceId));
+  const workspaceIdNum = parseInt(workspaceId);
+  if (!Number.isFinite(workspaceIdNum) || !userCanAccessWorkspace(req.userId!, workspaceIdNum)) {
+    res.redirect("/?error=workspace_forbidden");
+    return;
+  }
+
+  if (feedId) {
+    const feedIdNum = parseInt(feedId);
+    if (!Number.isFinite(feedIdNum) || !userCanAccessFeed(req.userId!, feedIdNum)) {
+      res.redirect("/?error=feed_forbidden");
+      return;
+    }
+  }
+
+  const { clientId, clientSecret } = await getDiscordCredentials(workspaceIdNum);
 
   if (!clientId || !clientSecret) {
     res.redirect("/?error=discord_not_configured");
@@ -158,7 +186,7 @@ router.get("/callback", async (req, res) => {
           webhookGuildId: guild_id,
           webhookName: webhookName,
         })
-        .where(eq(feeds.id, parseInt(feedId)));
+        .where(and(eq(feeds.id, parseInt(feedId)), eq(feeds.workspaceId, workspaceIdNum)));
 
       res.redirect("/?success=discord_connected");
     } else {

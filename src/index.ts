@@ -10,7 +10,8 @@ import workspacesRouter from "./api/workspaces.js";
 import adminRouter from "./api/admin.js";
 import { startScheduler } from "./services/scheduler.js";
 import { checkAllFeeds } from "./services/rss.js";
-import { requireAuth } from "./middleware/auth.js";
+import { requireAuth, AuthRequest } from "./middleware/auth.js";
+import { getUserWorkspaceIds } from "./lib/workspaces.js";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -66,9 +67,14 @@ app.use("/api/feeds", feedsRouter);
 app.use("/api/discord", discordRouter);
 app.use("/api/settings", settingsRouter);
 
-app.post("/api/check", requireAuth, async (_req, res) => {
+app.post("/api/check", requireAuth, async (req: AuthRequest, res) => {
   try {
-    await checkAllFeeds();
+    const userWorkspaceIds = getUserWorkspaceIds(req.userId!);
+    if (userWorkspaceIds.length === 0) {
+      res.json({ success: true, message: "No workspaces to check" });
+      return;
+    }
+    await checkAllFeeds(userWorkspaceIds);
     res.json({ success: true, message: "Feed check completed" });
   } catch (error) {
     res.status(500).json({ error: "Failed to check feeds" });

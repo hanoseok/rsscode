@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
 import { getUserWorkspaceIds } from "../lib/workspaces.js";
+import { restartWorkspaceScheduler } from "../services/scheduler.js";
 
 const router = Router();
 
@@ -106,6 +107,12 @@ router.put("/", async (req: AuthRequest, res: Response) => {
         discordClientSecret: parsed.data.discord_client_secret || null,
         checkIntervalMinutes: parsed.data.check_interval_minutes || 10,
       }).run();
+    }
+
+    if (parsed.data.check_interval_minutes !== undefined) {
+      restartWorkspaceScheduler(workspaceId).catch((err) =>
+        console.error("Failed to restart scheduler:", err)
+      );
     }
 
     res.json({ success: true });

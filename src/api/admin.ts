@@ -11,7 +11,7 @@ const router = Router();
 router.use(requireAdmin);
 
 const updatePasswordSchema = z.object({
-  password: z.string().min(4),
+  password: z.string().min(8),
 });
 
 const updateUserSchema = z.object({

@@ -4,8 +4,11 @@ import { users, workspaces, workspaceMembers } from "../db/schema.js";
 import { eq } from "drizzle-orm";
 import { hashPassword, verifyPassword } from "../utils/auth.js";
 import { z } from "zod";
+import { rateLimit } from "../middleware/rateLimit.js";
 
 const router = Router();
+
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10 });
 
 const loginSchema = z.object({
   username: z.string().min(1),
@@ -14,8 +17,8 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
   username: z.string().min(3).max(20),
-  password: z.string().min(4),
-  passwordConfirm: z.string().min(4),
+  password: z.string().min(8),
+  passwordConfirm: z.string().min(8),
 });
 
 declare module "express-session" {
@@ -26,7 +29,7 @@ declare module "express-session" {
   }
 }
 
-router.post("/login", async (req, res) => {
+router.post("/login", authLimiter, async (req, res) => {
   const parsed = loginSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid input" });
@@ -58,7 +61,7 @@ router.post("/login", async (req, res) => {
   });
 });
 
-router.post("/register", async (req, res) => {
+router.post("/register", authLimiter, async (req, res) => {
   const parsed = registerSchema.safeParse(req.body);
   if (!parsed.success) {
     const firstError = parsed.error.errors[0];

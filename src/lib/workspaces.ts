@@ -1,6 +1,13 @@
 import { db } from "../db/index.js";
 import { workspaces, workspaceMembers, feeds } from "../db/schema.js";
-import { eq, and } from "drizzle-orm";
+import { eq } from "drizzle-orm";
+
+export function parseIdParam(raw: string | string[] | undefined): number | null {
+  if (raw == null) return null;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  const n = parseInt(value, 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
 
 export function getUserWorkspaceIds(userId: number): number[] {
   const owned = db

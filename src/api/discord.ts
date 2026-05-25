@@ -139,7 +139,6 @@ router.get("/callback", async (req: AuthRequest, res) => {
 
   try {
     const redirectUri = getRedirectUri(req);
-    console.log("Token exchange redirect_uri:", redirectUri);
 
     const tokenResponse = await fetch(`${DISCORD_API}/oauth2/token`, {
       method: "POST",
@@ -155,15 +154,9 @@ router.get("/callback", async (req: AuthRequest, res) => {
     });
 
     if (!tokenResponse.ok) {
-      const err = await tokenResponse.text();
-      console.error("Token exchange failed:", err);
-      console.error("Used redirect_uri:", redirectUri);
-      console.error("Request headers:", JSON.stringify({
-        host: req.get("host"),
-        protocol: req.protocol,
-        "x-forwarded-proto": req.get("x-forwarded-proto"),
-        "x-forwarded-host": req.get("x-forwarded-host"),
-      }));
+      console.error(
+        `Discord token exchange failed: status=${tokenResponse.status} redirect_uri=${redirectUri}`,
+      );
       res.redirect("/?error=token_exchange");
       return;
     }

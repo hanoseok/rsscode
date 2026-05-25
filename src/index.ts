@@ -85,6 +85,10 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
+app.use("/api", (_req, res) => {
+  res.status(404).json({ error: "Not found" });
+});
+
 app.use(express.static(join(__dirname, "../public")));
 
 app.get("*", (_req, res) => {

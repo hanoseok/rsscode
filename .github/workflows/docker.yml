@@ -5,6 +5,12 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version to tag the image with (e.g. v1.0.7)'
+        required: true
+        type: string
 
 jobs:
   build-and-push:
@@ -45,7 +51,7 @@ jobs:
           images: hanoseok/rsscode
           tags: |
             type=raw,value=latest
-            type=semver,pattern={{version}}
+            type=semver,pattern={{version}},value=${{ inputs.version || github.ref_name }}
 
       - name: Build and push
         uses: docker/build-push-action@v5

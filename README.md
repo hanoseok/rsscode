@@ -34,12 +34,16 @@ RSS 피드를 모니터링하여 새 글을 Discord 채널로 자동 전송하�
    > 로컬 테스트: `http://localhost:3000/api/discord/callback`
 7. **Save Changes** 클릭
 
-### 2. Docker로 실행
+### 2. 실행 방법 (택 1)
+
+#### A. Docker (권장)
 
 ```bash
 docker run -d \
   --name rsscode \
   -p 3000:3000 \
+  -e SESSION_SECRET="$(openssl rand -base64 32)" \
+  -e NODE_ENV=production \
   -v rsscode_data:/data \
   hanoseok/rsscode:latest
 ```
@@ -51,6 +55,10 @@ services:
     image: hanoseok/rsscode:latest
     container_name: rsscode
     restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      SESSION_SECRET: ${SESSION_SECRET}          # 필수
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-}      # 선택 (콤마 구분 origin 목록)
     ports:
       - "32770:3000"
     volumes:
@@ -61,13 +69,34 @@ volumes:
 ```
 
 ```bash
+export SESSION_SECRET="$(openssl rand -base64 32)"
 docker-compose up -d
 ```
 
-### 3. 사용하기
+#### B. 사전 빌드된 tarball 다운로드
+
+GitHub Releases에서 `rsscode-vX.Y.Z-linux-x64.tar.gz`를 받아 압축 해제 후 실행.
+
+```bash
+# 최신 릴리스 다운로드
+curl -L -o rsscode.tar.gz \
+  https://github.com/hanoseok/rsscode/releases/latest/download/rsscode-vX.Y.Z-linux-x64.tar.gz
+
+tar -xzf rsscode.tar.gz
+cd rsscode-vX.Y.Z
+cp .env.example .env
+$EDITOR .env       # SESSION_SECRET 설정 필수 (production)
+./run.sh           # 또는: node dist/index.js
+```
+
+요구사항: Linux x64 + Node.js 20.
+
+### 3. 첫 로그인
 
 1. `https://your-domain.com` 접속
-2. 로그인 (기본 관리자: `admin` / `admin`)
+2. **로그인**
+   - 신규 배포: 첫 부팅 시 콘솔 로그에 출력된 랜덤 비밀번호로 `admin` 로그인 (또는 `ADMIN_INITIAL_PASSWORD` 환경변수로 지정한 값)
+   - 기존 배포(업그레이드): 기존 관리자 계정 그대로
 3. 좌측 LNB에서 워크스페이스 선택
 4. **Settings**에서 Discord Client ID/Secret 입력
 5. **Add Feed** 클릭 → RSS URL 입력
@@ -75,7 +104,7 @@ docker-compose up -d
 7. **Test** 버튼으로 테스트 메시지 전송
 8. 토글로 피드 활성화
 
-> 첫 실행 시 기본 관리자 계정(`admin`/`admin`)과 기본 워크스페이스가 자동 생성됩니다. 비밀번호를 반드시 변경하세요.
+> ⚠️ 로그인 후 바로 비밀번호를 변경하세요. 변경은 관리자 메뉴에서 가능합니다.
 
 ## 인증 및 워크스페이스
 
@@ -128,12 +157,36 @@ docker-compose up -d
 
 ## Environment Variables
 
-| 변수 | 설명 | 기본값 |
-|------|------|--------|
-| `DATABASE_URL` | SQLite DB 경로 | `/data/rsscode.db` |
-| `PORT` | 서버 포트 | `3000` |
+| 변수 | 필수 | 설명 | 기본값 |
+|------|:---:|------|--------|
+| `SESSION_SECRET` | ⚠️ production 필수 | 세션 쿠키 서명 키. 미설정 시 `NODE_ENV=production`에서 부팅 실패 | (없음) |
+| `ALLOWED_ORIGINS` | 선택 | CORS 허용 origin 콤마 구분 목록. 비우면 모든 origin 허용 (개발용) | (비어 있음) |
+| `ADMIN_INITIAL_PASSWORD` | 선택 | 신규 배포 시 admin 초기 비밀번호. 미설정 시 랜덤 생성 후 콘솔 출력 (1회) | (랜덤) |
+| `NODE_ENV` | 선택 | `production` 권장 (쿠키 secure 활성화 + SESSION_SECRET 강제) | `development` |
+| `DATABASE_URL` | 선택 | SQLite DB 경로 | `/data/rsscode.db` |
+| `PORT` | 선택 | 서버 포트 | `3000` |
 
-> Discord Client ID/Secret, 체크 주기는 웹 UI의 워크스페이스별 Settings에서 설정합니다.
+> Discord Client ID/Secret, 체크 주기는 웹 UI의 워크스페이스별 **Settings**에서 설정합니다.
+
+### `SESSION_SECRET` 생성 예시
+
+```bash
+openssl rand -base64 32
+# 또는
+node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+```
+
+### `ALLOWED_ORIGINS` 예시
+
+```bash
+# 단일 origin
+ALLOWED_ORIGINS=https://rss.example.com
+
+# 여러 origin
+ALLOWED_ORIGINS=https://rss.example.com,https://admin.example.com
+```
+
+리버스 프록시 뒤에서 서비스 자체와 동일 origin으로만 호출한다면 비워둬도 됩니다 (Origin 헤더 없는 동일 출처 호출은 항상 허용).
 
 ## Discord OAuth 설정 가이드
 
@@ -185,9 +238,68 @@ Discord Developer Portal에서 반드시 **정확한 Redirect URI**를 등록해
 ```bash
 npm install       # 의존성 설치
 npm run dev       # 개발 서버 (hot reload)
-npm test          # 테스트
-npm run build     # 빌드
+npm test          # 테스트 (vitest)
+npx tsc --noEmit  # 타입 체크
+npm run build     # 빌드 → dist/
 npm run start     # 프로덕션 실행
+```
+
+## 릴리스 / 배포 자동화
+
+이 저장소는 GitHub Actions에 4개의 워크플로우를 두고 있습니다.
+
+| 워크플로우 | 트리거 | 하는 일 |
+|------------|--------|---------|
+| `ci.yml` | PR / main push | 타입 체크 + 테스트 |
+| `auto-release.yml` | main push | 커밋 메시지 분석 → 버전 자동 산정 → 태그 push → docker + release 호출 |
+| `docker.yml` | `v*` 태그 push, 또는 `auto-release`가 호출 | Docker Hub `hanoseok/rsscode` 에 `latest` + `<version>` 태그로 push |
+| `release.yml` | `v*` 태그 push, 또는 `auto-release`가 호출 | 런타임 tarball 빌드 + GitHub Release에 첨부 |
+
+### 자동 릴리스 동작
+
+main 브랜치에 push될 때, 마지막 `v*` 태그 이후의 커밋 메시지를 분석합니다. 다음 prefix가 하나라도 있으면 새 버전이 산정됩니다.
+
+| 커밋 prefix | 버전 bump |
+|-------------|-----------|
+| `feat:` | minor (예: 1.0.7 → 1.1.0) |
+| `fix:` / `perf:` / `refactor:` / `security:` | patch (예: 1.0.7 → 1.0.8) |
+| `BREAKING CHANGE:` 또는 `feat!:` 같이 `!` 포함 | major (예: 1.0.7 → 2.0.0) |
+| `docs:` / `chore:` / `test:` / `style:` / `ci:` | 변화 없음 (릴리스 생성 안 됨) |
+
+새 태그가 만들어지면:
+1. `docker.yml`이 호출되어 Docker Hub에 push
+2. `release.yml`이 호출되어 tarball을 빌드하고 GitHub Release에 첨부
+
+### 수동 릴리스
+
+특정 버전으로 직접 태그를 푸시해도 동일하게 동작합니다.
+
+```bash
+git tag v1.0.7
+git push origin v1.0.7
+# → docker.yml 과 release.yml 이 자동 실행됨
+```
+
+또는 GitHub Actions UI에서:
+- Actions → **Auto Release** → Run workflow → 커밋 분석에 따라 자동 진행
+- Actions → **Release** → Run workflow → 버전 입력 (이 경로는 Release 생성 없이 workflow artifact만 생성)
+
+### 다운로드 형식
+
+- **Docker 이미지**: `hanoseok/rsscode:<version>` 및 `hanoseok/rsscode:latest`
+- **Tarball**: `rsscode-<version>-linux-x64.tar.gz` + `.sha256`
+  - 포함: `dist/`, `public/`, `drizzle/`, `package.json`, `node_modules/` (prod only), `run.sh`, `README.txt`
+  - 사용: 압축 풀고 `./run.sh` 또는 `node dist/index.js`
+  - 요구사항: Linux x64, Node.js 20
+
+### 첫 번째 자동 릴리스 트리거하기
+
+이 저장소에 아직 `v*` 태그가 없다면, 첫 자동 릴리스 전에 베이스라인 태그가 필요합니다.
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+# 이후 main에 feat:/fix: 커밋이 들어오면 자동으로 v1.0.1, v1.1.0, ... 으로 올라감
 ```
 
 ## API

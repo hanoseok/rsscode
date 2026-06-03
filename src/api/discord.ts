@@ -1,9 +1,10 @@
 import { Router, Response } from "express";
 import { db } from "../db/index.js";
 import { feeds } from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { getDiscordCredentials } from "./settings.js";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
+import { getUserWorkspaceIds, userCanAccessWorkspace, userCanAccessFeed } from "../lib/workspaces.js";
 
 const router = Router();
 
@@ -28,7 +29,7 @@ interface WebhookInfo {
 
 async function fetchWebhookInfo(webhookUrl: string): Promise<string | null> {
   try {
-    const res = await fetch(webhookUrl);
+    const res = await fetch(webhookUrl, { signal: AbortSignal.timeout(5_000) });
     if (!res.ok) return null;
     const data = await res.json() as WebhookInfo;
     return data.name || null;
@@ -45,20 +46,33 @@ function getRedirectUri(req: { protocol: string; get: (name: string) => string |
   return `${protocol}://${host}/api/discord/callback`;
 }
 
-router.get("/authorize", async (req, res) => {
+router.get("/authorize", async (req: AuthRequest, res) => {
   const workspaceId = req.query.workspaceId as string | undefined;
   if (!workspaceId) {
     res.redirect("/?error=workspace_required");
     return;
   }
 
-  const { clientId } = await getDiscordCredentials(parseInt(workspaceId));
-  if (!clientId) {
-    res.redirect("/?error=discord_not_configured");
+  const workspaceIdNum = parseInt(workspaceId);
+  if (!Number.isFinite(workspaceIdNum) || !userCanAccessWorkspace(req.userId!, workspaceIdNum)) {
+    res.redirect("/?error=workspace_forbidden");
     return;
   }
 
   const feedId = req.query.feedId as string | undefined;
+  if (feedId) {
+    const feedIdNum = parseInt(feedId);
+    if (!Number.isFinite(feedIdNum) || !userCanAccessFeed(req.userId!, feedIdNum)) {
+      res.redirect("/?error=feed_forbidden");
+      return;
+    }
+  }
+
+  const { clientId } = await getDiscordCredentials(workspaceIdNum);
+  if (!clientId) {
+    res.redirect("/?error=discord_not_configured");
+    return;
+  }
   const redirectUri = encodeURIComponent(getRedirectUri(req));
   const state = Buffer.from(JSON.stringify({ feedId: feedId || null, workspaceId })).toString("base64url");
 
@@ -73,7 +87,7 @@ router.get("/authorize", async (req, res) => {
   res.redirect(authUrl);
 });
 
-router.get("/callback", async (req, res) => {
+router.get("/callback", async (req: AuthRequest, res) => {
   const { code, state, error } = req.query;
 
   if (error) {
@@ -102,7 +116,21 @@ router.get("/callback", async (req, res) => {
     return;
   }
 
-  const { clientId, clientSecret } = await getDiscordCredentials(parseInt(workspaceId));
+  const workspaceIdNum = parseInt(workspaceId);
+  if (!Number.isFinite(workspaceIdNum) || !userCanAccessWorkspace(req.userId!, workspaceIdNum)) {
+    res.redirect("/?error=workspace_forbidden");
+    return;
+  }
+
+  if (feedId) {
+    const feedIdNum = parseInt(feedId);
+    if (!Number.isFinite(feedIdNum) || !userCanAccessFeed(req.userId!, feedIdNum)) {
+      res.redirect("/?error=feed_forbidden");
+      return;
+    }
+  }
+
+  const { clientId, clientSecret } = await getDiscordCredentials(workspaceIdNum);
 
   if (!clientId || !clientSecret) {
     res.redirect("/?error=discord_not_configured");
@@ -111,7 +139,6 @@ router.get("/callback", async (req, res) => {
 
   try {
     const redirectUri = getRedirectUri(req);
-    console.log("Token exchange redirect_uri:", redirectUri);
 
     const tokenResponse = await fetch(`${DISCORD_API}/oauth2/token`, {
       method: "POST",
@@ -123,18 +150,13 @@ router.get("/callback", async (req, res) => {
         code: code as string,
         redirect_uri: redirectUri,
       }),
+      signal: AbortSignal.timeout(10_000),
     });
 
     if (!tokenResponse.ok) {
-      const err = await tokenResponse.text();
-      console.error("Token exchange failed:", err);
-      console.error("Used redirect_uri:", redirectUri);
-      console.error("Request headers:", JSON.stringify({
-        host: req.get("host"),
-        protocol: req.protocol,
-        "x-forwarded-proto": req.get("x-forwarded-proto"),
-        "x-forwarded-host": req.get("x-forwarded-host"),
-      }));
+      console.error(
+        `Discord token exchange failed: status=${tokenResponse.status} redirect_uri=${redirectUri}`,
+      );
       res.redirect("/?error=token_exchange");
       return;
     }
@@ -158,7 +180,7 @@ router.get("/callback", async (req, res) => {
           webhookGuildId: guild_id,
           webhookName: webhookName,
         })
-        .where(eq(feeds.id, parseInt(feedId)));
+        .where(and(eq(feeds.id, parseInt(feedId)), eq(feeds.workspaceId, workspaceIdNum)));
 
       res.redirect("/?success=discord_connected");
     } else {
@@ -173,9 +195,17 @@ router.get("/callback", async (req, res) => {
   }
 });
 
-router.get("/channels", async (_req, res) => {
+router.get("/channels", async (req: AuthRequest, res) => {
   try {
-    const allFeeds = await db.select().from(feeds);
+    const userWorkspaceIds = getUserWorkspaceIds(req.userId!);
+    if (userWorkspaceIds.length === 0) {
+      res.json([]);
+      return;
+    }
+    const allFeeds = await db
+      .select()
+      .from(feeds)
+      .where(inArray(feeds.workspaceId, userWorkspaceIds));
     const channelMap = new Map<string, { webhookUrl: string; channelId: string; guildId: string; feedNames: string[] }>();
 
     for (const feed of allFeeds) {
@@ -207,9 +237,18 @@ router.get("/channels", async (_req, res) => {
   }
 });
 
-router.delete("/:feedId", async (req, res) => {
+router.delete("/:feedId", async (req: AuthRequest, res) => {
   try {
-    const feedId = parseInt(req.params.feedId);
+    const feedIdParam = req.params.feedId;
+    const feedId = parseInt(Array.isArray(feedIdParam) ? feedIdParam[0] : feedIdParam);
+    if (!Number.isFinite(feedId)) {
+      res.status(400).json({ error: "Invalid feedId" });
+      return;
+    }
+    if (!userCanAccessFeed(req.userId!, feedId)) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
 
     await db
       .update(feeds)
@@ -217,6 +256,7 @@ router.delete("/:feedId", async (req, res) => {
         webhookUrl: null,
         webhookChannelId: null,
         webhookGuildId: null,
+        webhookName: null,
       })
       .where(eq(feeds.id, feedId));
 

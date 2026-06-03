@@ -1,9 +1,11 @@
 import { Router, Response } from "express";
 import { db } from "../db/index.js";
-import { workspaceSettings, workspaces, workspaceMembers } from "../db/schema.js";
-import { eq, or } from "drizzle-orm";
+import { workspaceSettings } from "../db/schema.js";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
+import { getUserWorkspaceIds } from "../lib/workspaces.js";
+import { restartWorkspaceScheduler } from "../services/scheduler.js";
 
 const router = Router();
 
@@ -14,13 +16,6 @@ const updateSettingsSchema = z.object({
   discord_client_secret: z.string().optional().nullable(),
   check_interval_minutes: z.number().min(1).max(1440).optional(),
 });
-
-function getUserWorkspaceIds(userId: number): number[] {
-  const owned = db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.ownerId, userId)).all();
-  const member = db.select({ workspaceId: workspaceMembers.workspaceId }).from(workspaceMembers).where(eq(workspaceMembers.userId, userId)).all();
-  const ids = new Set([...owned.map(w => w.id), ...member.map(m => m.workspaceId)]);
-  return Array.from(ids);
-}
 
 export async function getWorkspaceSettings(workspaceId: number) {
   const settings = db.select().from(workspaceSettings).where(eq(workspaceSettings.workspaceId, workspaceId)).get();
@@ -112,6 +107,12 @@ router.put("/", async (req: AuthRequest, res: Response) => {
         discordClientSecret: parsed.data.discord_client_secret || null,
         checkIntervalMinutes: parsed.data.check_interval_minutes || 10,
       }).run();
+    }
+
+    if (parsed.data.check_interval_minutes !== undefined) {
+      restartWorkspaceScheduler(workspaceId).catch((err) =>
+        console.error("Failed to restart scheduler:", err)
+      );
     }
 
     res.json({ success: true });

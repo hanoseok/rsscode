@@ -1,17 +1,26 @@
 import { Router, Response } from "express";
 import { db } from "../db/index.js";
 import { users } from "../db/schema.js";
-import { eq } from "drizzle-orm";
+import { eq, and, ne } from "drizzle-orm";
 import { z } from "zod";
 import { requireAdmin, AuthRequest } from "../middleware/auth.js";
 import { hashPassword } from "../utils/auth.js";
+
+function countOtherAdmins(excludeUserId: number): number {
+  const rows = db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.isAdmin, true), ne(users.id, excludeUserId)))
+    .all();
+  return rows.length;
+}
 
 const router = Router();
 
 router.use(requireAdmin);
 
 const updatePasswordSchema = z.object({
-  password: z.string().min(4),
+  password: z.string().min(8),
 });
 
 const updateUserSchema = z.object({
@@ -41,6 +50,11 @@ router.delete("/users/:id", async (req: AuthRequest, res: Response) => {
   const user = db.select().from(users).where(eq(users.id, userId)).get();
   if (!user) {
     res.status(404).json({ error: "User not found" });
+    return;
+  }
+
+  if (user.isAdmin && countOtherAdmins(userId) === 0) {
+    res.status(400).json({ error: "Cannot delete the last admin" });
     return;
   }
 
@@ -90,6 +104,14 @@ router.put("/users/:id", async (req: AuthRequest, res: Response) => {
   }
 
   if (parsed.data.isAdmin !== undefined) {
+    if (
+      user.isAdmin &&
+      parsed.data.isAdmin === false &&
+      countOtherAdmins(userId) === 0
+    ) {
+      res.status(400).json({ error: "Cannot demote the last admin" });
+      return;
+    }
     db.update(users)
       .set({ isAdmin: parsed.data.isAdmin })
       .where(eq(users.id, userId))

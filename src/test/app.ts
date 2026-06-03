@@ -14,6 +14,7 @@ const createFeedSchema = z.object({
   name: z.string().min(1).max(100),
   url: z.string().url(),
   profileImage: z.string().url().optional(),
+  workspaceId: z.number().optional(),
 });
 
 const feedsRouter = Router();
@@ -37,6 +38,7 @@ feedsRouter.post("/", async (req, res) => {
         name: parsed.data.name,
         url: parsed.data.url,
         profileImage: parsed.data.profileImage,
+        workspaceId: parsed.data.workspaceId ?? 1,
       })
       .returning();
 

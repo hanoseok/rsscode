@@ -1,13 +1,15 @@
 import { Router, Response } from "express";
 import Parser from "rss-parser";
 import { db } from "../db/index.js";
-import { feeds, posts, workspaces, workspaceMembers } from "../db/schema.js";
-import { eq, and, or, inArray } from "drizzle-orm";
+import { feeds, posts } from "../db/schema.js";
+import { eq, inArray } from "drizzle-orm";
 import { createFeedSchema, updateFeedSchema } from "../types/index.js";
 import { sendToDiscord, applyTemplate } from "../services/discord.js";
 import { requireAuth, AuthRequest } from "../middleware/auth.js";
+import { getUserWorkspaceIds } from "../lib/workspaces.js";
 
 const parser = new Parser({
+  timeout: 15_000,
   headers: {
     "User-Agent":
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -18,13 +20,6 @@ const parser = new Parser({
 const router = Router();
 
 router.use(requireAuth);
-
-function getUserWorkspaceIds(userId: number): number[] {
-  const owned = db.select({ id: workspaces.id }).from(workspaces).where(eq(workspaces.ownerId, userId)).all();
-  const member = db.select({ workspaceId: workspaceMembers.workspaceId }).from(workspaceMembers).where(eq(workspaceMembers.userId, userId)).all();
-  const ids = new Set([...owned.map(w => w.id), ...member.map(m => m.workspaceId)]);
-  return Array.from(ids);
-}
 
 router.get("/", async (req: AuthRequest, res: Response) => {
   try {
@@ -359,6 +354,12 @@ router.get("/:id/preview", async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    const userWorkspaceIds = getUserWorkspaceIds(req.userId!);
+    if (feed.workspaceId && !userWorkspaceIds.includes(feed.workspaceId)) {
+      res.status(403).json({ error: "Access denied" });
+      return;
+    }
+
     let rssFeed;
     try {
       rssFeed = await parser.parseURL(feed.url);
@@ -411,6 +412,12 @@ router.post("/:id/test", async (req: AuthRequest, res: Response) => {
 
     if (!feed) {
       res.status(404).json({ error: "Feed not found" });
+      return;
+    }
+
+    const userWorkspaceIds = getUserWorkspaceIds(req.userId!);
+    if (feed.workspaceId && !userWorkspaceIds.includes(feed.workspaceId)) {
+      res.status(403).json({ error: "Access denied" });
       return;
     }
 

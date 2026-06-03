@@ -1,0 +1,116 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g. v1.0.7). Used as release name; no git tag is created.'
+        required: true
+  workflow_call:
+    inputs:
+      version:
+        description: 'Version tag (e.g. v1.0.7). Must already exist as a git tag for a Release to be created.'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            VERSION="${GITHUB_REF_NAME}"
+          else
+            VERSION="${{ inputs.version }}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Resolved version: ${VERSION}"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Stage release tree
+        run: |
+          STAGE="rsscode-${{ steps.ver.outputs.version }}"
+          mkdir -p "$STAGE"
+          cp -r dist public drizzle package.json package-lock.json "$STAGE/"
+          cp .env.example "$STAGE/" 2>/dev/null || true
+
+          # Install production-only node_modules into the stage dir.
+          # better-sqlite3 will pull its prebuilt linux-x64 binary here.
+          (cd "$STAGE" && npm ci --omit=dev)
+
+          # Write a tiny launcher and a README.
+          cat > "$STAGE/run.sh" <<'EOF'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          cd "$(dirname "$0")"
+          exec node dist/index.js
+          EOF
+          chmod +x "$STAGE/run.sh"
+
+          cat > "$STAGE/README.txt" <<EOF
+          rsscode ${{ steps.ver.outputs.version }}
+
+          Quick start:
+            1. Copy .env.example to .env and set values (SESSION_SECRET is
+               required when NODE_ENV=production).
+            2. Run:  ./run.sh
+                or:  node dist/index.js
+
+          Requires Node.js 20 on Linux x64.
+          EOF
+
+          tar -czf "rsscode-${{ steps.ver.outputs.version }}-linux-x64.tar.gz" "$STAGE"
+          sha256sum "rsscode-${{ steps.ver.outputs.version }}-linux-x64.tar.gz" \
+            > "rsscode-${{ steps.ver.outputs.version }}-linux-x64.tar.gz.sha256"
+          ls -la rsscode-*.tar.gz*
+
+      - name: Upload build as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rsscode-${{ steps.ver.outputs.version }}-linux-x64
+          path: |
+            rsscode-${{ steps.ver.outputs.version }}-linux-x64.tar.gz
+            rsscode-${{ steps.ver.outputs.version }}-linux-x64.tar.gz.sha256
+          retention-days: 90
+
+      - name: Create / update GitHub Release
+        if: (github.event_name == 'push' && github.ref_type == 'tag') || github.event_name == 'workflow_call'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.version }}
+          name: ${{ steps.ver.outputs.version }}
+          generate_release_notes: true
+          files: |
+            rsscode-${{ steps.ver.outputs.version }}-linux-x64.tar.gz
+            rsscode-${{ steps.ver.outputs.version }}-linux-x64.tar.gz.sha256

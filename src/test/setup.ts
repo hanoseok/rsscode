@@ -37,7 +37,7 @@ beforeAll(() => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       workspace_id INTEGER REFERENCES workspaces(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
-      url TEXT NOT NULL UNIQUE,
+      url TEXT NOT NULL,
       profile_image TEXT,
       webhook_url TEXT,
       webhook_channel_id TEXT,
@@ -51,6 +51,8 @@ beforeAll(() => {
       last_sent_at INTEGER,
       last_sent_title TEXT
     );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_feeds_workspace_url ON feeds(workspace_id, url);
 
     CREATE TABLE IF NOT EXISTS posts (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -68,7 +70,8 @@ beforeAll(() => {
       workspace_id INTEGER NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       discord_client_id TEXT,
       discord_client_secret TEXT,
-      check_interval_minutes INTEGER NOT NULL DEFAULT 10
+      check_interval_minutes INTEGER NOT NULL DEFAULT 10,
+      UNIQUE(workspace_id)
     );
   `);
 });
@@ -80,6 +83,15 @@ beforeEach(() => {
   sqlite.exec("DELETE FROM workspace_members");
   sqlite.exec("DELETE FROM workspaces");
   sqlite.exec("DELETE FROM users");
+
+  // Seed a default user and workspace (id=1) so feed tests using the
+  // mock app (which doesn't set workspaceId) can satisfy the FK.
+  // Suites that create their own users insert with different usernames.
+  sqlite.exec(`
+    INSERT INTO users (id, username, password_hash, is_admin)
+    VALUES (1, '__test_seed__', 'hash', 0);
+    INSERT INTO workspaces (id, name, owner_id) VALUES (1, 'default', 1);
+  `);
 });
 
 afterAll(() => {

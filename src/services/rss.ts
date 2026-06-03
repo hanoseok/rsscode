@@ -1,10 +1,11 @@
 import Parser from "rss-parser";
 import { db } from "../db/index.js";
 import { feeds, posts, type Feed } from "../db/schema.js";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { sendToDiscord, type RssItemData } from "./discord.js";
 
 const parser = new Parser({
+  timeout: 15_000,
   headers: {
     "User-Agent":
       "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -56,24 +57,18 @@ export async function checkFeed(feed: Feed): Promise<number> {
       const isFirstItem = rssFeed.items.indexOf(item) === 0;
 
       if (isFirstCheck && !isFirstItem) {
-        await db.insert(posts).values({
-          feedId: feed.id,
-          guid,
-          title: item.title,
-          link: item.link,
-          publishedAt,
-        });
+        await db
+          .insert(posts)
+          .values({ feedId: feed.id, guid, title: item.title, link: item.link, publishedAt })
+          .onConflictDoNothing();
         continue;
       }
 
       if (feed.lastSentAt && publishedAt && publishedAt <= feed.lastSentAt) {
-        await db.insert(posts).values({
-          feedId: feed.id,
-          guid,
-          title: item.title,
-          link: item.link,
-          publishedAt,
-        });
+        await db
+          .insert(posts)
+          .values({ feedId: feed.id, guid, title: item.title, link: item.link, publishedAt })
+          .onConflictDoNothing();
         continue;
       }
 
@@ -97,13 +92,10 @@ export async function checkFeed(feed: Feed): Promise<number> {
       });
 
       if (sent) {
-        await db.insert(posts).values({
-          feedId: feed.id,
-          guid,
-          title: item.title,
-          link: item.link,
-          publishedAt,
-        });
+        await db
+          .insert(posts)
+          .values({ feedId: feed.id, guid, title: item.title, link: item.link, publishedAt })
+          .onConflictDoNothing();
 
         const now = new Date();
         await db
@@ -127,9 +119,15 @@ export async function checkFeed(feed: Feed): Promise<number> {
   }
 }
 
-export async function checkAllFeeds(): Promise<void> {
-  console.log(`[${new Date().toISOString()}] Checking all feeds...`);
-  const allFeeds = await db.select().from(feeds);
+export async function checkAllFeeds(workspaceIds?: number[]): Promise<void> {
+  const scope = workspaceIds && workspaceIds.length > 0
+    ? `workspaces [${workspaceIds.join(", ")}]`
+    : "all workspaces";
+  console.log(`[${new Date().toISOString()}] Checking feeds for ${scope}...`);
+
+  const allFeeds = workspaceIds && workspaceIds.length > 0
+    ? await db.select().from(feeds).where(inArray(feeds.workspaceId, workspaceIds))
+    : await db.select().from(feeds);
   const enabledFeeds = allFeeds.filter((f) => f.enabled);
 
   let totalNew = 0;

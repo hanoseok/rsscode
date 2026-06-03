@@ -1,5 +1,5 @@
 import cron from "node-cron";
-import { checkAllFeeds } from "./rss.js";
+import { checkFeed } from "./rss.js";
 import { db } from "../db/index.js";
 import { workspaceSettings, feeds, workspaces } from "../db/schema.js";
 import { eq } from "drizzle-orm";
@@ -11,7 +11,6 @@ interface WorkspaceScheduler {
 }
 
 const schedulers: Map<number, WorkspaceScheduler> = new Map();
-let globalScheduler: cron.ScheduledTask | null = null;
 
 async function getWorkspaceInterval(workspaceId: number): Promise<number> {
   const settings = db.select().from(workspaceSettings).where(eq(workspaceSettings.workspaceId, workspaceId)).get();
@@ -26,7 +25,6 @@ async function checkWorkspaceFeeds(workspaceId: number): Promise<void> {
   let totalNew = 0;
   for (const feed of enabledFeeds) {
     try {
-      const { checkFeed } = await import("./rss.js");
       const newCount = await checkFeed(feed);
       totalNew += newCount;
       if (newCount > 0) {
@@ -74,27 +72,9 @@ export async function startScheduler(): Promise<void> {
   console.log(`Started schedulers for ${allWorkspaces.length} workspaces`);
 }
 
-export async function restartScheduler(): Promise<void> {
-  console.log("Restarting all schedulers...");
-  await startScheduler();
-}
-
 export async function restartWorkspaceScheduler(workspaceId: number): Promise<void> {
   console.log(`Restarting scheduler for workspace ${workspaceId}...`);
   await startWorkspaceScheduler(workspaceId);
-}
-
-export function stopScheduler(): void {
-  for (const [workspaceId, scheduler] of schedulers) {
-    scheduler.task.stop();
-    console.log(`Stopped scheduler for workspace ${workspaceId}`);
-  }
-  schedulers.clear();
-
-  if (globalScheduler) {
-    globalScheduler.stop();
-    globalScheduler = null;
-  }
 }
 
 export function stopWorkspaceScheduler(workspaceId: number): void {
